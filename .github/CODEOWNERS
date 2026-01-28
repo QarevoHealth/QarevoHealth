@@ -1,0 +1,12 @@
+# Qarevo Health - CODEOWNERS
+# Rule: keep ownership aligned with service boundaries.
+# Later: assign owners per service folder.
+
+* @QarevoHealth @sodaski5
+
+# Services (examples)
+#/services/auth/ @qarevo-maintainers
+#/services/consultation/ @qarevo-maintainers
+
+# Infra (examples)
+#/infra/ @qarevo-maintainers
