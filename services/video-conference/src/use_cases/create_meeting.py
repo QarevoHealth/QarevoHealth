@@ -1,33 +1,46 @@
-"""Create meeting use case."""
+"""Create meeting use case - AWS Chime SDK."""
 
-from sqlalchemy.orm import Session
-from src.models import Session, SessionDB
+from src.chime_client import create_meeting_with_attendees
+from src.models import CreateMeetingRequest, CreateMeetingResponse, AttendeeJoinInfo
+from src.config import config
 
 
-class CreateMeetingUseCase:
-    """Use case to create a meeting with host and attendee."""
+def execute(request: CreateMeetingRequest) -> CreateMeetingResponse:
+    """Create a Chime meeting with participants."""
+    external_meeting_id = f"meeting-{request.attendees[0].external_user_id}"
     
-    def __init__(self, db: Session):
-        self.db = db
+    attendees_payload = [
+        {"external_user_id": a.external_user_id, "role": a.role}
+        for a in request.attendees
+    ]
     
-    def execute(self, host_id: str, attendee_id: str) -> Session:
-        """Create a new meeting session."""
-        # Create session
-        session = Session.create(host_id=host_id, attendee_id=attendee_id)
+    response = create_meeting_with_attendees(
+        external_meeting_id=external_meeting_id,
+        attendees=attendees_payload,
+    )
+    
+    meeting = response["Meeting"]
+    meeting_id = meeting["MeetingId"]
+    media_region = meeting["MediaRegion"]
+    
+    attendee_infos = []
+    for att in response.get("Attendees", []):
+        join_token = att["JoinToken"]
+        external_user_id = att["ExternalUserId"]
+        join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}"
         
-        # Save to database
-        db_session = SessionDB(
-            id=session.id,
-            host_id=session.host_id,
-            participants=[
-                {"user_id": p.user_id, "role": p.role}
-                for p in session.participants
-            ],
-            status=session.status
+        attendee_infos.append(
+            AttendeeJoinInfo(
+                external_user_id=external_user_id,
+                attendee_id=att["AttendeeId"],
+                join_token=join_token,
+                join_url=join_url,
+            )
         )
-        
-        self.db.add(db_session)
-        self.db.commit()
-        self.db.refresh(db_session)
-        
-        return session
+    
+    return CreateMeetingResponse(
+        meeting_id=meeting_id,
+        external_meeting_id=meeting["ExternalMeetingId"],
+        media_region=media_region,
+        attendees=attendee_infos,
+    )

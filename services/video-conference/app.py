@@ -2,11 +2,7 @@
 
 from fastapi import FastAPI
 from src.api.meetings import router as meetings_router
-from src.database import engine, Base
 from src.config import config
-
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=config.APP_NAME,
