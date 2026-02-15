@@ -1,0 +1,65 @@
+# ----------------------------
+# OS / Editor
+# ----------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ----------------------------
+# Terraform
+# ----------------------------
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+terraform.rc
+.terraformrc
+
+# If you want to avoid committing real tfvars (recommended)
+*.tfvars
+*.tfvars.json
+
+# Exception: keep example tfvars in repo
+!*.tfvars.example
+!*.tfvars.json.example
+
+# ----------------------------
+# Node / Next.js
+# ----------------------------
+node_modules/
+.next/
+out/
+dist/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env files (secrets)
+.env
+.env.*
+!.env.example
+
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# ----------------------------
+# Logs
+# ----------------------------
+*.log
+logs/
