@@ -10,11 +10,14 @@ load_dotenv()
 class Config:
     """Application configuration."""
     
+    # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./video_conference.db")
+    
     # AWS Chime
     AWS_CHIME_REGION: str = os.getenv("AWS_CHIME_REGION", "us-east-1")
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-    APP_JOIN_URL: str = os.getenv("APP_JOIN_URL", "https://your-app.com/join")
+    APP_JOIN_URL: str = os.getenv("APP_JOIN_URL", "http://localhost:8000/join")
     
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")
