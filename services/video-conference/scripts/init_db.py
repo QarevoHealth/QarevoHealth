@@ -19,14 +19,13 @@ sys.path.insert(0, str(project_root))
 
 from src.database import init_db, engine
 from src.config import config
-from src.models import AttendeeDB, MeetingDB  # noqa: F401 - needed for table creation
 
 
 def main():
     print(f"Connecting to: {config.DATABASE_URL}")
     print("Creating tables...")
     init_db()
-    print("Done! Tables created: meetings, attendees")
+    print("Done! Tables created.")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pathlib import Path
+from src.api.consultations import router as consultations_router
 from src.api.meetings import router as meetings_router
 from src.config import config
 
@@ -15,6 +16,7 @@ app = FastAPI(
 )
 
 # Mount routes
+app.include_router(consultations_router)
 app.include_router(meetings_router)
 
 # Serve join page

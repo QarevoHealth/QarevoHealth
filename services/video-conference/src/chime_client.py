@@ -83,3 +83,10 @@ def delete_meeting(meeting_id: str) -> None:
     """End/delete a Chime meeting."""
     client = get_chime_client()
     client.delete_meeting(MeetingId=meeting_id)
+
+
+def get_meeting(meeting_id: str) -> dict:
+    """Get meeting details (MediaPlacement) for frontend to join."""
+    client = get_chime_client()
+    response = client.get_meeting(MeetingId=meeting_id)
+    return response["Meeting"]

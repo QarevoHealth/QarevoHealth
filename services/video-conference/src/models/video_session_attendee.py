@@ -26,6 +26,7 @@ class VideoSessionAttendeeDB(Base):
     participant_role = Column(String, nullable=True)
     attendee_id = Column(String, nullable=True, index=True)
     join_payload = Column(JSON, nullable=True)
+    joined_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
