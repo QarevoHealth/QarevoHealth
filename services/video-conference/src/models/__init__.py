@@ -9,6 +9,8 @@ from src.models.provider import ProviderDB
 from src.models.schemas import (
     AttendeeInput,
     AttendeeJoinInfo,
+    ConsultationProviderDetail,
+    ConsultationProvidersResponse,
     ConsultationResponse,
     CreateMeetingRequest,
     CreateMeetingResponse,
@@ -16,6 +18,8 @@ from src.models.schemas import (
     JoinedAttendeeDetail,
     JoinMeetingRequest,
     JoinMeetingResponse,
+    VideoSessionJoinRequest,
+    VideoSessionJoinResponse,
 )
 from src.models.tenant import TenantDB
 from src.models.user import UserDB
@@ -29,6 +33,8 @@ __all__ = [
     "AttendeeInput",
     "AttendeeJoinInfo",
     "ConsultationDB",
+    "ConsultationProviderDetail",
+    "ConsultationProvidersResponse",
     "ConsultationResponse",
     "ConsultationProviderDB",
     "CreateMeetingRequest",
@@ -44,4 +50,6 @@ __all__ = [
     "VideoSessionDB",
     "VideoSessionArtifactDB",
     "VideoSessionAttendeeDB",
+    "VideoSessionJoinRequest",
+    "VideoSessionJoinResponse",
 ]

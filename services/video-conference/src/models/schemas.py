@@ -88,3 +88,49 @@ class ConsultationResponse(BaseModel):
         default_factory=list,
         description="Attendees who have joined (joined_at set)",
     )
+
+
+# Consultation providers response (clinician identity for lobby/in-call UI)
+class ConsultationProviderDetail(BaseModel):
+    """Provider details for consultation - clinician identity in lobby/in-call UI."""
+
+    provider_id: UUID = Field(..., description="Provider UUID")
+    user_id: UUID = Field(..., description="User UUID")
+    full_name: Optional[str] = Field(None, description="Display name")
+    email: Optional[str] = Field(None, description="Contact email")
+    phone: Optional[str] = Field(None, description="Contact phone")
+    role: Optional[str] = Field(None, description="e.g. PRIMARY")
+    specialty: Optional[str] = Field(None, description="Clinician specialty")
+    experience_years: Optional[int] = Field(None, description="Years of experience")
+    license_number: Optional[str] = Field(None, description="License number")
+    is_independent: Optional[bool] = Field(None, description="Independent provider flag")
+    avatar_url: Optional[str] = Field(None, description="Avatar/profile image URL")
+
+
+class ConsultationProvidersResponse(BaseModel):
+    """Providers for a consultation - clinician identity for lobby/in-call UI."""
+
+    consultation_id: UUID = Field(..., description="Consultation UUID")
+    providers: List[ConsultationProviderDetail] = Field(
+        default_factory=list,
+        description="Clinicians for this consultation",
+    )
+
+
+# Video session join (Chime payload for frontend)
+class VideoSessionJoinRequest(BaseModel):
+    """Request to join a video session - user identity."""
+
+    user_id: UUID = Field(..., description="User UUID (patient or provider) joining the session")
+
+
+class VideoSessionJoinResponse(BaseModel):
+    """Join payload for AWS Chime - meeting + attendee for frontend init."""
+
+    meeting_id: str = Field(..., description="Chime meeting ID")
+    attendee_id: str = Field(..., description="Chime attendee ID")
+    join_token: str = Field(..., description="Chime join token")
+    media_placement: Optional[dict] = Field(
+        None, description="Chime MediaPlacement URLs for SDK init (AudioHostUrl, SignalingUrl, etc.)"
+    )
+    join_url: str = Field(..., description="Full URL to join (convenience)")

@@ -10,11 +10,18 @@ from src.database import get_db
 from src.models import (
     AppointmentDB,
     ConsultationDB,
+    ConsultationProviderDB,
+    ConsultationProviderDetail,
+    ConsultationProvidersResponse,
     ConsultationResponse,
     JoinedAttendeeDetail,
+    ProviderDB,
     VideoSessionDB,
     VideoSessionAttendeeDB,
+    VideoSessionJoinRequest,
+    VideoSessionJoinResponse,
 )
+from src.use_cases.join_video_session import execute as join_video_session
 
 router = APIRouter(prefix="/api/v1/consultations", tags=["consultations"])
 
@@ -81,3 +88,81 @@ def get_consultation_api(consultation_id: UUID, db: Session = Depends(get_db)):
         meeting_id=video_session.meeting_id if video_session else None,
         joined_attendees=joined_attendees,
     )
+
+
+@router.get("/{consultation_id}/providers", response_model=ConsultationProvidersResponse)
+def get_consultation_providers_api(consultation_id: UUID, db: Session = Depends(get_db)):
+    """
+    Get provider details for a consultation.
+    Clinician identity for lobby/in-call UI (name, specialty, avatar/contact fields).
+    """
+    consultation = db.query(ConsultationDB).filter(
+        ConsultationDB.id == consultation_id
+    ).first()
+    if not consultation:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+
+    cp_list = (
+        db.query(ConsultationProviderDB)
+        .options(
+            joinedload(ConsultationProviderDB.provider).joinedload(ProviderDB.user),
+        )
+        .filter(ConsultationProviderDB.consultation_id == consultation_id)
+        .all()
+    )
+
+    providers: List[ConsultationProviderDetail] = []
+    for cp in cp_list:
+        p = cp.provider
+        u = p.user if p else None
+        providers.append(
+            ConsultationProviderDetail(
+                provider_id=p.id,
+                user_id=p.user_id,
+                full_name=u.full_name if u else None,
+                email=u.email if u else None,
+                phone=u.phone if u else None,
+                role=cp.role,
+                specialty=p.specialty,
+                experience_years=p.experience_years,
+                license_number=p.license_number,
+                is_independent=p.is_independent,
+                avatar_url=None,
+            )
+        )
+
+    return ConsultationProvidersResponse(
+        consultation_id=consultation_id,
+        providers=providers,
+    )
+
+
+@router.post(
+    "/{consultation_id}/video-session/join",
+    response_model=VideoSessionJoinResponse,
+    status_code=201,
+)
+def join_video_session_api(
+    consultation_id: UUID,
+    request: VideoSessionJoinRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Join video session - returns Chime payload for frontend to initialize AWS Chime.
+    Meeting/session state is owned by backend (persisted server-side).
+    Frontend receives only the join payload (meeting_id, attendee_id, join_token, media_placement).
+    """
+    try:
+        return join_video_session(consultation_id, request, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        from botocore.exceptions import ClientError
+
+        if isinstance(e, ClientError):
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "NotFoundException":
+                raise HTTPException(status_code=404, detail="Meeting not found")
+            if error_code == "BadRequestException":
+                raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
