@@ -1,5 +1,6 @@
 """Join video session use case - Return Chime payload for frontend init."""
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -14,6 +15,7 @@ from src.models import (
     VideoSessionDB,
 )
 from src.models.schemas import VideoSessionJoinRequest, VideoSessionJoinResponse
+from src.constants.meeting import CONFIG_MEETING
 
 
 def execute(
@@ -24,16 +26,18 @@ def execute(
     """
     Join a video session for a consultation.
     Returns Chime payload (meeting + attendee) for frontend to initialize AWS Chime.
-    Meeting/session state is owned by backend (persisted server-side).
+    Consultation: started when first person joins. Appointment: SCHEDULED → COMPLETED.
     """
+    now = datetime.now(timezone.utc)
+
     # 1. Validate consultation exists
     consultation = db.query(ConsultationDB).filter(
         ConsultationDB.id == consultation_id
     ).first()
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
-    print("consultation",consultation.__dict__)
-    # 2. Get video session by consultation_id (Option 1: direct query)
+
+    # 2. Get video session by consultation_id
     video_session = db.query(VideoSessionDB).filter(
         VideoSessionDB.consultation_id == consultation_id
     ).first()
@@ -42,7 +46,6 @@ def execute(
             status_code=404,
             detail="Video session not found for this consultation",
         )
-    print("video_session",video_session.__dict__)
 
     meeting_id = video_session.meeting_id
     if not meeting_id:
@@ -50,7 +53,6 @@ def execute(
             status_code=404,
             detail="Meeting not found for this consultation",
         )
-    print("meeting_id",meeting_id)
 
     # 3. Validate user exists
     user = db.query(UserDB).filter(UserDB.id == request.user_id).first()
@@ -73,6 +75,14 @@ def execute(
             # Re-create attendee if payload missing
             pass  # fall through to create
         else:
+            # Consultation: started when first person joins
+            if consultation.started_at is None:
+                consultation.status = CONFIG_MEETING.CONSULTATION_STATUS.STARTED
+                consultation.started_at = now
+            if existing.joined_at is None:
+                existing.joined_at = now
+            db.commit()
+
             meeting = get_meeting(meeting_id)
             media_placement = meeting.get("MediaPlacement")
             join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={attendee_id}"
@@ -98,14 +108,21 @@ def execute(
     vs_attendee = VideoSessionAttendeeDB(
         video_session_id=video_session.id,
         participant_user_id=request.user_id,
-        participant_role="participant",
+        participant_role=CONFIG_MEETING.ROLE.PARTICIPANT,
         attendee_id=attendee_id,
         join_payload={"join_token": join_token, "attendee_id": attendee_id},
+        joined_at=now,
     )
     db.add(vs_attendee)
+
+    # 7. Consultation: started when first person joins
+    if consultation.started_at is None:
+        consultation.status = CONFIG_MEETING.CONSULTATION_STATUS.STARTED
+        consultation.started_at = now
+
     db.commit()
 
-    # 7. Get media placement for Chime SDK init
+    # 8. Get media placement for Chime SDK init
     meeting = get_meeting(meeting_id)
     media_placement = meeting.get("MediaPlacement")
     join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={attendee_id}"

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from src.database import get_db
+from src.constants.meeting import CONFIG_MEETING
 from src.models import (
     AppointmentDB,
     ConsultationDB,
@@ -20,8 +21,11 @@ from src.models import (
     VideoSessionAttendeeDB,
     VideoSessionJoinRequest,
     VideoSessionJoinResponse,
+    VideoSessionEndRequest,
+    VideoSessionEndResponse,
 )
 from src.use_cases.join_video_session import execute as join_video_session
+from src.use_cases.end_video_session import execute as end_video_session
 
 router = APIRouter(prefix="/api/v1/consultations", tags=["consultations"])
 
@@ -69,7 +73,7 @@ def get_consultation_api(consultation_id: UUID, db: Session = Depends(get_db)):
             JoinedAttendeeDetail(
                 attendee_id=a.attendee_id or "",
                 participant_user_id=a.participant_user_id,
-                participant_role=a.participant_role or "participant",
+                participant_role=a.participant_role or CONFIG_MEETING.ROLE.PARTICIPANT,
                 joined_at=a.joined_at,
                 full_name=a.participant_user.full_name if a.participant_user else None,
                 email=a.participant_user.email if a.participant_user else None,
@@ -166,3 +170,35 @@ def join_video_session_api(
             if error_code == "BadRequestException":
                 raise HTTPException(status_code=400, detail=str(e))
         raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.post(
+    "/{consultation_id}/video-session/end",
+    response_model=VideoSessionEndResponse,
+    status_code=200,
+)
+def end_video_session_api(
+    consultation_id: UUID,
+    request: VideoSessionEndRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    End video session - deletes Chime meeting and updates consultation, video session,
+    and linked appointment status.
+    """
+    try:
+        return end_video_session(consultation_id, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        from botocore.exceptions import ClientError
+
+        if isinstance(e, ClientError):
+            error_code = e.response.get("Error", {}).get("Code", "")
+            if error_code == "NotFoundException":
+                raise HTTPException(status_code=404, detail="Meeting not found")
+            if error_code == "BadRequestException":
+                raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+

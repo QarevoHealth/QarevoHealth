@@ -8,6 +8,7 @@ from src.chime_client import create_attendee
 from src.models import JoinMeetingRequest, JoinMeetingResponse
 from src.config import config
 from src.models import VideoSessionDB, VideoSessionAttendeeDB, UserDB
+from src.constants.meeting import CONFIG_MEETING
 
 
 def execute(meeting_id: str, request: JoinMeetingRequest, db: Session) -> JoinMeetingResponse:
@@ -44,7 +45,7 @@ def execute(meeting_id: str, request: JoinMeetingRequest, db: Session) -> JoinMe
     vs_attendee = VideoSessionAttendeeDB(
         video_session_id=video_session.id,
         participant_user_id=user_id,
-        participant_role="participant",
+        participant_role=CONFIG_MEETING.ROLE.PARTICIPANT,
         attendee_id=attendee_id,
         join_payload={"join_token": join_token, "attendee_id": attendee_id},
     )

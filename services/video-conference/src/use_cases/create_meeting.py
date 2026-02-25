@@ -19,6 +19,7 @@ from src.models import (
     ProviderDB,
 )
 from src.config import config
+from src.constants.meeting import CONFIG_MEETING
 
 
 def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse:
@@ -38,15 +39,15 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
     # 3. Build attendees list: patient + providers (Chime needs external_user_id = str)
     patient_user_id = patient.user_id
     attendees_payload = [
-        {"external_user_id": str(patient_user_id), "role": "patient"},
+        {"external_user_id": str(patient_user_id), "role": CONFIG_MEETING.ROLE.PATIENT},
     ]
     for p in providers:
-        attendees_payload.append({"external_user_id": str(p.user_id), "role": "provider"})
+        attendees_payload.append({"external_user_id": str(p.user_id), "role": CONFIG_MEETING.ROLE.PROVIDER})
 
     # 4. Create consultation first (needed for external_meeting_id - Chime max 64 chars)
     consultation = ConsultationDB(
         patient_id=request.patient_id,
-        status="SCHEDULED",
+        status=CONFIG_MEETING.CONSULTATION_STATUS.SCHEDULED,
         scheduled_at=request.scheduled_at,
         created_by_user_id=patient_user_id,
     )
@@ -77,7 +78,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
                 detail=f"Appointment {request.appointment_id} not found or does not belong to patient",
             )
         appointment.consultation_id = consultation.id
-        appointment.status = "SCHEDULED"  # scheduled when creating; IN_PROGRESS when call actually starts
+        appointment.status = CONFIG_MEETING.APPOINTMENT_STATUS.SCHEDULED
         appointment.created_by_user_id = patient_user_id
         # appointment_providers already exist from when appointment was created
     else:
@@ -94,7 +95,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
             start_at=start_at,
             end_at=end_at,
             consultation_id=consultation.id,
-            status="SCHEDULED",
+            status=CONFIG_MEETING.APPOINTMENT_STATUS.SCHEDULED,
             created_by_user_id=patient_user_id,
         )
         db.add(appointment)
@@ -103,7 +104,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
             ap = AppointmentProviderDB(
                 appointment_id=appointment.id,
                 provider_id=provider.id,
-                role="PRIMARY",
+                role=CONFIG_MEETING.ROLE.PRIMARY,
             )
             db.add(ap)
 
@@ -112,7 +113,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
         cp = ConsultationProviderDB(
             consultation_id=consultation.id,
             provider_id=provider.id,
-            role="PRIMARY",
+            role=CONFIG_MEETING.ROLE.PRIMARY,
         )
         db.add(cp)
 
@@ -120,15 +121,15 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
     video_session = VideoSessionDB(
         consultation_id=consultation.id,
         meeting_id=meeting_id,
-        status="SCHEDULED",
+        status=CONFIG_MEETING.VIDEO_SESSION_STATUS.SCHEDULED,
     )
     db.add(video_session)
     db.flush()
 
     # 9. Map external_user_id (str(user_id)) -> (user_id, role)
-    ext_to_user = {str(patient_user_id): (patient_user_id, "patient")}
+    ext_to_user = {str(patient_user_id): (patient_user_id, CONFIG_MEETING.ROLE.PATIENT)}
     for p in providers:
-        ext_to_user[str(p.user_id)] = (p.user_id, "provider")
+        ext_to_user[str(p.user_id)] = (p.user_id, CONFIG_MEETING.ROLE.PROVIDER)
 
     # 10. Create video_session_attendees and build response
     attendee_infos = []
@@ -136,7 +137,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
 
     for att in chime_attendees:
         ext_uid = att["ExternalUserId"]
-        user_id, role = ext_to_user.get(ext_uid, (None, "participant"))
+        user_id, role = ext_to_user.get(ext_uid, (None, CONFIG_MEETING.ROLE.PARTICIPANT))
         if user_id is None:
             continue  # Skip if not in our map
         join_token = att["JoinToken"]

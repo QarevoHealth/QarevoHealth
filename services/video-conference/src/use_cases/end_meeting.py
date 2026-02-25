@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from src.chime_client import delete_meeting
 from src.models import EndMeetingResponse
 from src.models import VideoSessionDB, ConsultationDB
+from src.constants.meeting import CONFIG_MEETING
 
 
 def execute(meeting_id: str, db: Session) -> EndMeetingResponse:
@@ -17,13 +18,12 @@ def execute(meeting_id: str, db: Session) -> EndMeetingResponse:
         VideoSessionDB.meeting_id == meeting_id
     ).first()
     if video_session:
-        video_session.status = "ended"
-        # Update consultation status
+        video_session.status = CONFIG_MEETING.VIDEO_SESSION_STATUS.ENDED
         consultation = db.query(ConsultationDB).filter(
             ConsultationDB.id == video_session.consultation_id
         ).first()
         if consultation:
-            consultation.status = "ended"
+            consultation.status = CONFIG_MEETING.CONSULTATION_STATUS.ENDED
 
     db.commit()
 

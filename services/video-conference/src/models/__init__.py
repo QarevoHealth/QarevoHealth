@@ -20,6 +20,8 @@ from src.models.schemas import (
     JoinMeetingResponse,
     VideoSessionJoinRequest,
     VideoSessionJoinResponse,
+    VideoSessionEndRequest,
+    VideoSessionEndResponse
 )
 from src.models.tenant import TenantDB
 from src.models.user import UserDB
@@ -52,4 +54,6 @@ __all__ = [
     "VideoSessionAttendeeDB",
     "VideoSessionJoinRequest",
     "VideoSessionJoinResponse",
+    "VideoSessionEndRequest",
+    "VideoSessionEndResponse",
 ]

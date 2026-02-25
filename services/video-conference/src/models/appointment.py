@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from src.database import Base
+from src.constants.meeting import CONFIG_MEETING
 
 
 class AppointmentDB(Base):
@@ -25,7 +26,7 @@ class AppointmentDB(Base):
     consultation_id = Column(
         UUID(as_uuid=True), ForeignKey("consultations.id", ondelete="SET NULL"), nullable=True, unique=True
     )
-    status = Column(String, nullable=False, default="BOOKED", index=True)
+    status = Column(String, nullable=False, default=CONFIG_MEETING.APPOINTMENT_STATUS.BOOKED, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
