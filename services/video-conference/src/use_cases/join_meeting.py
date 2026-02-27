@@ -7,8 +7,9 @@ from fastapi import HTTPException
 from src.chime_client import create_attendee
 from src.models import JoinMeetingRequest, JoinMeetingResponse
 from src.config import config
-from src.models import VideoSessionDB, VideoSessionAttendeeDB, UserDB
+from src.models import VideoSessionDB, VideoSessionAttendeeDB, UserDB, ConsultationDB
 from src.constants.meeting import CONFIG_MEETING
+from src.use_cases.join_video_session import _get_join_role
 
 
 def execute(meeting_id: str, request: JoinMeetingRequest, db: Session) -> JoinMeetingResponse:
@@ -41,11 +42,15 @@ def execute(meeting_id: str, request: JoinMeetingRequest, db: Session) -> JoinMe
     attendee_id = attendee["AttendeeId"]
     join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={attendee_id}"
 
-    # Save to video_session_attendees
+    consultation = db.query(ConsultationDB).filter(
+        ConsultationDB.id == video_session.consultation_id
+    ).first()
+    role = _get_join_role(consultation, user_id, db) if consultation else CONFIG_MEETING.ROLE.PROVIDER
+
     vs_attendee = VideoSessionAttendeeDB(
         video_session_id=video_session.id,
         participant_user_id=user_id,
-        participant_role=CONFIG_MEETING.ROLE.PARTICIPANT,
+        participant_role=role,
         attendee_id=attendee_id,
         join_payload={"join_token": join_token, "attendee_id": attendee_id},
     )

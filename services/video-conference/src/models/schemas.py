@@ -16,13 +16,13 @@ class AttendeeInput(BaseModel):
         ..., description="User identifier (e.g. doctor123, patient456)"
     )
     role: str = Field(
-        default=CONFIG_MEETING.ROLE.PARTICIPANT,
-        description="Role: doctor, patient, participant",
+        default=CONFIG_MEETING.ROLE.PROVIDER,
+        description="Role: PATIENT or PROVIDER",
     )
 
 
 class CreateMeetingRequest(BaseModel):
-    """Request to create a meeting with doctor and patient details stored in DB."""
+    """Request to schedule a consultation. New consultation = new appointment."""
 
     patient_id: UUID = Field(..., description="Patient UUID (from patients table)")
     provider_ids: List[UUID] = Field(
@@ -31,14 +31,11 @@ class CreateMeetingRequest(BaseModel):
     scheduled_at: Optional[datetime] = Field(
         None, description="Scheduled consultation time"
     )
-    appointment_id: Optional[UUID] = Field(
-        None, description="Existing appointment UUID - links consultation to it"
-    )
     start_at: Optional[datetime] = Field(
-        None, description="Appointment start (required when creating new appointment)"
+        None, description="Appointment start (default: scheduled_at)"
     )
     end_at: Optional[datetime] = Field(
-        None, description="Appointment end (default: start_at + 30 min)"
+        None, description="Appointment end (default: start_at + 60 min)"
     )
 
 
@@ -56,7 +53,7 @@ class AttendeeJoinInfo(BaseModel):
 
     user_id: UUID = Field(..., description="User UUID (patient or provider)")
     participant_role: str = Field(
-        ..., description="PATIENT, PROVIDER, PARTICIPANT (see CONFIG_MEETING.ROLE)"
+        ..., description="PATIENT or PROVIDER (see CONFIG_MEETING.ROLE)"
     )
     attendee_id: str = Field(..., description="Chime attendee ID")
     join_token: str = Field(..., description="Chime join token")
@@ -64,18 +61,30 @@ class AttendeeJoinInfo(BaseModel):
 
 
 class CreateMeetingResponse(BaseModel):
-    """Response after creating a meeting."""
+    """Response after scheduling a consultation.
+    Chime meeting is created lazily at join time - no meeting_id/attendees until first join.
+    """
 
     consultation_id: UUID = Field(
         ..., description="Consultation UUID for GET /consultations/{id})"
     )
-    meeting_id: str = Field(..., description="Chime meeting ID")
-    external_meeting_id: str = Field(..., description="External meeting ID")
-    media_region: str = Field(..., description="AWS media region")
-    attendees: List[AttendeeJoinInfo] = Field(
-        ..., description="Join info per participant"
+    meeting_id: Optional[str] = Field(
+        None,
+        description="Chime meeting ID (None until first participant joins)",
     )
-    message: str = "Meeting created successfully"
+    external_meeting_id: Optional[str] = Field(
+        None,
+        description="External meeting ID (same as consultation_id)",
+    )
+    media_region: Optional[str] = Field(
+        None,
+        description="AWS media region (set when meeting is created at join)",
+    )
+    attendees: List[AttendeeJoinInfo] = Field(
+        default_factory=list,
+        description="Join info per participant (empty until join - use video-session/join)",
+    )
+    message: str = "Consultation scheduled. Join via POST /consultations/{id}/video-session/join"
 
 
 class JoinMeetingResponse(BaseModel):
@@ -102,7 +111,7 @@ class JoinedAttendeeDetail(BaseModel):
     attendee_id: str = Field(..., description="Chime attendee ID")
     participant_user_id: UUID = Field(..., description="User UUID")
     participant_role: str = Field(
-        ..., description="PATIENT, PROVIDER, PARTICIPANT (see CONFIG_MEETING.ROLE)"
+        ..., description="PATIENT or PROVIDER (see CONFIG_MEETING.ROLE)"
     )
     joined_at: Optional[datetime] = Field(None, description="When the attendee joined")
     full_name: Optional[str] = Field(None, description="User full name")

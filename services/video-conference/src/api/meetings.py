@@ -31,7 +31,7 @@ def _handle_aws_error(e: Exception) -> None:
 
 @router.post("", response_model=CreateMeetingResponse, status_code=201)
 def create_meeting_api(request: CreateMeetingRequest, db: Session = Depends(get_db)):
-    """Create a Chime meeting with participants. Stores consultation, patient, provider in DB."""
+    """Schedule consultation - stores appointment/consultation only. Chime meeting created at join time."""
     try:
         return create_meeting(request, db)
     except HTTPException:

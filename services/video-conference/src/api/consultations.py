@@ -73,7 +73,7 @@ def get_consultation_api(consultation_id: UUID, db: Session = Depends(get_db)):
             JoinedAttendeeDetail(
                 attendee_id=a.attendee_id or "",
                 participant_user_id=a.participant_user_id,
-                participant_role=a.participant_role or CONFIG_MEETING.ROLE.PARTICIPANT,
+                participant_role=a.participant_role or CONFIG_MEETING.ROLE.PROVIDER,
                 joined_at=a.joined_at,
                 full_name=a.participant_user.full_name if a.participant_user else None,
                 email=a.participant_user.email if a.participant_user else None,
