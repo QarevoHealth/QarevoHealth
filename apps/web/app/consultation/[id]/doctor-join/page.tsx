@@ -4,7 +4,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 /** Default doctor user_id for testing */
-const DEFAULT_PROVIDER_USER_ID = "2b645955-1b75-4e37-a119-c6ad748c7d45";
+const DEFAULT_PROVIDER_USER_ID = "4dc8a45f-3e8d-4912-a41f-d193a1a1f70c";
 
 /**
  * Redirects to the new waiting URL: /consultation/{id}/waiting/user/{userId}

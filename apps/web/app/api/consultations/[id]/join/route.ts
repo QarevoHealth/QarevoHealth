@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 /** Default patient user_id for testing when none provided */
-const DEFAULT_PATIENT_USER_ID = "4b7966a0-0630-4f9f-8a90-c77372b9fb18";
+const DEFAULT_PATIENT_USER_ID = "f730d30a-1b30-4e07-a1b7-1c35f892ca3f";
 
 /** Default doctor user_id for testing when none provided */
-const DEFAULT_DOCTOR_USER_ID = "2b645955-1b75-4e37-a119-c6ad748c7d45";
+const DEFAULT_DOCTOR_USER_ID = "4dc8a45f-3e8d-4912-a41f-d193a1a1f70c";
 
 async function getJoinToken(consultationId: string, userId: string) {
     const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";

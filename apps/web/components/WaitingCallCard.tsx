@@ -7,7 +7,7 @@ import { Camera, ChevronDown, Grid3X3, Loader2, Square, X } from "lucide-react";
 import { TestCamera } from "./TestCamera";
 import { TestMicrophone } from "./TestMicrophone";
 
-const DEFAULT_PROVIDER_USER_ID = "2b645955-1b75-4e37-a119-c6ad748c7d45";
+const DEFAULT_PROVIDER_USER_ID = "4dc8a45f-3e8d-4912-a41f-d193a1a1f70c";
 
 type WaitingCallCardProps = {
     doctorName: string;
@@ -108,7 +108,7 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
                             const res = await fetch(`/api/consultations/${consultationId}/join`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ user_id: userId ?? "4b7966a0-0630-4f9f-8a90-c77372b9fb18" }),
+                                body: JSON.stringify({ user_id: userId ?? "f730d30a-1b30-4e07-a1b7-1c35f892ca3f" }),
                             });
                             const data = await res.json();
                             if (!res.ok) throw new Error(data.error ?? "Failed to join");

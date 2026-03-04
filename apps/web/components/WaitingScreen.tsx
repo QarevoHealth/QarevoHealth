@@ -61,7 +61,7 @@ const FALLBACK_DOCTOR: DoctorDetails = {
     education: DEFAULT_EDUCATION,
 };
 
-const DEFAULT_PATIENT_USER_ID = "4b7966a0-0630-4f9f-8a90-c77372b9fb18";
+const DEFAULT_PATIENT_USER_ID = "f730d30a-1b30-4e07-a1b7-1c35f892ca3f";
 
 export function WaitingScreen() {
     const params = useParams();
