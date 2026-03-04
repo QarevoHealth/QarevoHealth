@@ -61,7 +61,7 @@ const FALLBACK_DOCTOR: DoctorDetails = {
     education: DEFAULT_EDUCATION,
 };
 
-const DEFAULT_PATIENT_USER_ID = "2b645955-1b75-4e37-a119-c6ad748c7d45";
+const DEFAULT_PATIENT_USER_ID = "4b7966a0-0630-4f9f-8a90-c77372b9fb18";
 
 export function WaitingScreen() {
     const params = useParams();
@@ -98,6 +98,7 @@ export function WaitingScreen() {
                         videoPreviewSrc="/mock/doctor3.png"
                         consultationId={consultationId}
                         userId={userId ?? DEFAULT_PATIENT_USER_ID}
+                        role={userId ? "doctor" : "patient"}
                     />
                 </div>
                 <div className="flex w-full max-w-[392px] lg:min-h-[504px] lg:w-[392px]">

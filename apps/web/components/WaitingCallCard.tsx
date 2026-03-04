@@ -7,16 +7,17 @@ import { Camera, ChevronDown, Grid3X3, Loader2, Square, X } from "lucide-react";
 import { TestCamera } from "./TestCamera";
 import { TestMicrophone } from "./TestMicrophone";
 
-const DEFAULT_DOCTOR_USER_ID = "a1b2c3d4-5e6f-7890-abcd-ef1234567890";
+const DEFAULT_PROVIDER_USER_ID = "2b645955-1b75-4e37-a119-c6ad748c7d45";
 
 type WaitingCallCardProps = {
     doctorName: string;
     videoPreviewSrc?: string;
     consultationId?: string;
     userId?: string;
+    role?: "patient" | "doctor";
 };
 
-export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.png", consultationId = "123", userId }: WaitingCallCardProps) {
+export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.png", consultationId = "123", userId, role = "patient" }: WaitingCallCardProps) {
     const router = useRouter();
     const [joining, setJoining] = useState(false);
     const [joinError, setJoinError] = useState<string | null>(null);
@@ -26,9 +27,11 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
     const [doctorJoinUrl, setDoctorJoinUrl] = useState("");
     const videoRef = useRef<HTMLVideoElement>(null);
 
+    const [patientWaitUrl, setPatientWaitUrl] = useState("");
     useEffect(() => {
         if (typeof window !== "undefined") {
-            setDoctorJoinUrl(`${window.location.origin}/consultation/${consultationId}/waiting/user/${DEFAULT_DOCTOR_USER_ID}`);
+            setDoctorJoinUrl(`${window.location.origin}/consultation/${consultationId}/waiting/user/${DEFAULT_PROVIDER_USER_ID}`);
+            setPatientWaitUrl(`${window.location.origin}/consultation/${consultationId}/waiting`);
         }
     }, [consultationId]);
 
@@ -47,6 +50,13 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
         <div className="relative overflow-visible rounded-[28px] border border-[var(--q-card-border)] bg-[var(--q-card)] p-6 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur">
             {/* Glow border effect */}
             <div className="pointer-events-none absolute inset-0 rounded-[28px] shadow-[0_0_0_6px_rgba(61,213,178,0.25)]" />
+
+            {/* Role badge - prevents using same URL in both tabs (causes "session will not be reconnected") */}
+            <div className="mb-4 flex justify-center">
+                <span className={`rounded-full px-4 py-1.5 text-xs font-semibold ${role === "doctor" ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-800"}`}>
+                    Joining as: {role === "doctor" ? "Doctor" : "Patient"}
+                </span>
+            </div>
 
             <div className="relative space-y-6">
                 {/* Video preview */}
@@ -98,7 +108,7 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
                             const res = await fetch(`/api/consultations/${consultationId}/join`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ user_id: userId ?? "2b645955-1b75-4e37-a119-c6ad748c7d45" }),
+                                body: JSON.stringify({ user_id: userId ?? "4b7966a0-0630-4f9f-8a90-c77372b9fb18" }),
                             });
                             const data = await res.json();
                             if (!res.ok) throw new Error(data.error ?? "Failed to join");
@@ -203,19 +213,24 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
                 </div>
 
                 {/* Doctor join link - for testing: open in another browser to join as 2nd person */}
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 p-4">
-                    <p className="mb-2 text-center text-xs font-medium text-[var(--q-muted)]">
-                        Testing with 2 people? Open this link in another tab/browser to join as the doctor. They will see the waiting screen and click Join Call:
+                <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/80 p-4">
+                    <p className="mb-2 text-center text-xs font-semibold text-amber-800">
+                        {role === "patient" ? "2-person test: Use DIFFERENT URLs" : "You are the doctor. Patient uses the main waiting URL (without /user/...)."}
+                    </p>
+                    <p className="mb-2 text-center text-xs text-[var(--q-muted)]">
+                        {role === "patient"
+                            ? "Open the link below in incognito/another browser as the doctor. Same URL in both tabs = disconnect."
+                            : "Copy and share the main waiting URL with the patient."}
                     </p>
                     <div className="flex items-center gap-2">
                         <input
                             readOnly
-                            value={doctorJoinUrl}
+                            value={role === "doctor" ? patientWaitUrl : doctorJoinUrl}
                             className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-[var(--q-text)]"
                         />
                         <button
                             type="button"
-                            onClick={() => navigator.clipboard.writeText(doctorJoinUrl)}
+                            onClick={() => navigator.clipboard.writeText(role === "doctor" ? patientWaitUrl : doctorJoinUrl)}
                             className="shrink-0 rounded-lg bg-sky-100 px-3 py-2 text-xs font-medium text-sky-700 hover:bg-sky-200"
                         >
                             Copy
