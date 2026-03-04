@@ -6,6 +6,7 @@ import { Mic, MicOff } from "lucide-react";
 import { ChimeMeeting } from "@/components/ChimeMeeting";
 import { VideoTile } from "@/components/VideoTile";
 import { CallControls } from "@/components/CallControls";
+import { RightPanelTabs } from "@/components/RightPanelTabs";
 import type { ChimeJoinResponse } from "@/lib/chime";
 
 type CallPageContentProps = {
@@ -140,21 +141,33 @@ export function CallPageContent({
         }
     }, [screenSharing, screenStream]);
 
+    const sidePanel = (
+        <div className="w-full shrink-0 lg:w-[380px] lg:min-w-[320px]">
+            <RightPanelTabs initial="Patient data" />
+        </div>
+    );
+
     if (joinData) {
         return (
-            <ChimeMeeting
-                joinData={joinData}
-                consultationId={consultationId}
-                doctorA={doctorA}
-                doctorASpec={doctorASpec}
-                patientName={patientName}
-                onEndCall={handleEndCall}
-            />
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+                <div className="min-w-0 flex-1">
+                    <ChimeMeeting
+                        joinData={joinData}
+                        consultationId={consultationId}
+                        doctorA={doctorA}
+                        doctorASpec={doctorASpec}
+                        patientName={patientName}
+                        onEndCall={handleEndCall}
+                    />
+                </div>
+                {sidePanel}
+            </div>
         );
     }
 
     return (
-        <>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+            <div className="min-w-0 flex-1">
             {/* Top status */}
             <div className="mb-6 flex items-center justify-between">
                 <div className="flex flex-1 items-center justify-center gap-3 text-sm text-[rgba(15,23,42,0.55)]">
@@ -238,6 +251,8 @@ export function CallPageContent({
                 screenSharing={screenSharing}
                 onScreenShareToggle={handleScreenShareToggle}
             />
-        </>
+            </div>
+            {sidePanel}
+        </div>
     );
 }
