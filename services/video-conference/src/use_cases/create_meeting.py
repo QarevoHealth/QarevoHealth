@@ -38,17 +38,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
 
     patient_user_id = patient.user_id
 
-    # 4. Create consultation (time, participants, status - no Chime yet)
-    consultation = ConsultationDB(
-        patient_id=request.patient_id,
-        status=CONFIG_MEETING.CONSULTATION_STATUS.SCHEDULED,
-        scheduled_at=request.scheduled_at,
-        created_by_user_id=patient_user_id,
-    )
-    db.add(consultation)
-    db.flush()
-
-    # 5. New consultation = new appointment + appointment_providers
+    # 3. Create consultation + appointment via relationship (single flush)
     start_at = request.start_at or request.scheduled_at
     if not start_at:
         raise HTTPException(
@@ -60,12 +50,19 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
         patient_id=request.patient_id,
         start_at=start_at,
         end_at=end_at,
-        consultation_id=consultation.id,
         status=CONFIG_MEETING.APPOINTMENT_STATUS.SCHEDULED,
         created_by_user_id=patient_user_id,
     )
-    db.add(appointment)
-    db.flush()
+    consultation = ConsultationDB(
+        patient_id=request.patient_id,
+        status=CONFIG_MEETING.CONSULTATION_STATUS.SCHEDULED,
+        scheduled_at=request.scheduled_at,
+        created_by_user_id=patient_user_id,
+        appointment=appointment,
+    )
+    db.add(consultation)
+    db.flush()  # Inserts consultation + appointment, populates both ids
+
     for provider in providers:
         ap = AppointmentProviderDB(
             appointment_id=appointment.id,
@@ -74,7 +71,7 @@ def execute(request: CreateMeetingRequest, db: Session) -> CreateMeetingResponse
         )
         db.add(ap)
 
-    # 7. Link providers to consultation and every provider is considered as primary doctor need to cover it in next sprint
+    # 6. Link providers to consultation
     for provider in providers:
         cp = ConsultationProviderDB(
             consultation_id=consultation.id,

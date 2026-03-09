@@ -196,12 +196,12 @@ class VideoSessionJoinResponse(BaseModel):
 
 
 class VideoSessionEndRequest(BaseModel):
-    """Request to end a video session - consulatation_id."""
+    """Request to end a video session."""
 
     consultation_id: UUID = Field(..., description="Consultation UUID")
 
 
 class VideoSessionEndResponse(BaseModel):
-    """End a video session - consulatation_id."""
+    """Response after ending a video session."""
 
     consultation_id: UUID = Field(..., description="Consultation UUID")

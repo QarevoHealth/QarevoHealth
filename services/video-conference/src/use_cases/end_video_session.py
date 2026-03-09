@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from botocore.exceptions import ClientError
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -44,8 +45,12 @@ def execute(consultation_id: UUID, db: Session) -> VideoSessionEndResponse:
             detail="Video session has no Chime meeting (cannot delete)",
         )
 
-    # 3. Delete Chime meeting (requires meeting_id, not consultation_id)
-    delete_meeting(meeting_id=meeting_id)
+    # 3. Delete Chime meeting (ignore NotFound - meeting may already be expired/deleted)
+    try:
+        delete_meeting(meeting_id=meeting_id)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") != "NotFoundException":
+            raise
 
     # 4. Update video session
     video_session.status = CONFIG_MEETING.VIDEO_SESSION_STATUS.ENDED
