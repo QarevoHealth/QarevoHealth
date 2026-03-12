@@ -25,5 +25,6 @@ class PatientDB(Base):
 
     # Relationships
     user = relationship("UserDB", back_populates="patient")
+    patient_insurance = relationship("PatientInsuranceDB", back_populates="patient", uselist=False)
     consultations = relationship("ConsultationDB", back_populates="patient")
     appointments = relationship("AppointmentDB", back_populates="patient")
