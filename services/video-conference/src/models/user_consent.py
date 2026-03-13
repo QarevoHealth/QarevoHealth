@@ -30,7 +30,6 @@ class UserConsentDB(Base):
 class ConsentType:
     """Consent type constants."""
 
-    TERMS = "TERMS"
-    PRIVACY = "PRIVACY"
+    TERMS_PRIVACY = "TERMS_PRIVACY"
     TELEHEALTH = "TELEHEALTH"
     MARKETING = "MARKETING"

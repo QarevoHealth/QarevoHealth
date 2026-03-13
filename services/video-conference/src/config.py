@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-
 class Config:
     """Application configuration."""
     
@@ -30,7 +29,7 @@ class Config:
     APP_NAME: str = os.getenv("APP_NAME", "Video Conference Service")
     APP_VERSION: str = os.getenv("APP_VERSION", "1.0.0")
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
-    
+
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
