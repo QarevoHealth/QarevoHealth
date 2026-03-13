@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.constants.user import CONFIG_USER
 from src.models import ConsentType, PatientDB, UserConsentDB, UserDB
+from src.use_cases.send_verification_email import execute as send_verification_email
 from src.schemas.auth import RegisterRequest
 from src.services.auth_service import hash_password
 
@@ -76,6 +77,15 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
             for consent_type, accepted in consent_map.items()
         ]
         db.add_all(consent_records)
+
+        # Create verification token (stored in DB) and send welcome + verification email
+        send_verification_email(
+            user_id=user.id,
+            user_email=email_lower,
+            user_name=request.name,
+            db=db,
+        )
+
         db.commit()
         db.refresh(user)
 

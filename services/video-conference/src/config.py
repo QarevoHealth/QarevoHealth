@@ -17,6 +17,14 @@ class Config:
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
     APP_JOIN_URL: str = os.getenv("APP_JOIN_URL", "http://localhost:3000/join")
+
+    # AWS SES (email)
+    AWS_SES_REGION: str = os.getenv("AWS_SES_REGION", os.getenv("AWS_CHIME_REGION", "us-east-1"))
+    AWS_SES_FROM_EMAIL: str = os.getenv("AWS_SES_FROM_EMAIL", "noreply@qarevohealth.com")
+    EMAIL_VERIFICATION_LINK_BASE: str = os.getenv(
+        "EMAIL_VERIFICATION_LINK_BASE", "https://app.qarevohealth.com/verify-email"
+    )
+    EMAIL_VERIFICATION_EXPIRY_HOURS: int = int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
     
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")
