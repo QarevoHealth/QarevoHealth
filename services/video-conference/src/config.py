@@ -24,6 +24,9 @@ class Config:
     EMAIL_VERIFICATION_LINK_BASE: str = os.getenv(
         "EMAIL_VERIFICATION_LINK_BASE", "https://app.qarevohealth.com/verify-email"
     )
+    EMAIL_VERIFICATION_SUCCESS_URL: str = os.getenv(
+        "EMAIL_VERIFICATION_SUCCESS_URL", "https://app.qarevohealth.com"
+    )
     EMAIL_VERIFICATION_EXPIRY_HOURS: int = int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
     
     # Server
@@ -37,6 +40,12 @@ class Config:
     APP_NAME: str = os.getenv("APP_NAME", "Video Conference Service")
     APP_VERSION: str = os.getenv("APP_VERSION", "1.0.0")
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+
+    # JWT
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "change-me-in-production")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+    REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
     # Logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
