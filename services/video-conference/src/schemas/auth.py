@@ -98,3 +98,30 @@ class RegisterResponse(BaseModel):
 
     user_id: UUID = Field(..., description="Created user UUID")
     message: str = Field("Registration successful.", description="Status message")
+
+
+class LoginRequest(BaseModel):
+    """Login request."""
+
+    email: EmailStr = Field(..., description="Email address")
+    password: str = Field(..., description="Password")
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower().strip() if v else v
+
+
+class LoginResponse(BaseModel):
+    """Login response with tokens."""
+
+    access_token: str = Field(..., description="JWT access token")
+    refresh_token: str = Field(..., description="Refresh token (store securely)")
+    token_type: str = Field("bearer", description="Token type")
+    expires_in: int = Field(..., description="Access token expiry in seconds")
+
+
+class RefreshRequest(BaseModel):
+    """Refresh token request."""
+
+    refresh_token: str = Field(..., description="Refresh token")
