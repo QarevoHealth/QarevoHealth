@@ -28,6 +28,9 @@ class Config:
         "EMAIL_VERIFICATION_SUCCESS_URL", "https://app.qarevohealth.com"
     )
     EMAIL_VERIFICATION_EXPIRY_HOURS: int = int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
+    RESEND_ATTEMPTS_LIMIT: int = int(os.getenv("RESEND_ATTEMPTS_LIMIT", "3"))
+    RESEND_ATTEMPTS_WINDOW_HOURS: int = int(os.getenv("RESEND_ATTEMPTS_WINDOW_HOURS", "24"))
+    LOCKOUT_HOURS: int = int(os.getenv("LOCKOUT_HOURS", "24"))
     
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")

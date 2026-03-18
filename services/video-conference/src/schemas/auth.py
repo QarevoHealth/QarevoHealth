@@ -125,3 +125,20 @@ class RefreshRequest(BaseModel):
     """Refresh token request."""
 
     refresh_token: str = Field(..., description="Refresh token")
+
+
+class ResendVerificationRequest(BaseModel):
+    """Request to resend verification email."""
+
+    email: EmailStr = Field(..., description="Email address of registered user")
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower().strip() if v else v
+
+
+class ResendVerificationResponse(BaseModel):
+    """Response after resending verification email."""
+
+    message: str = Field("Verification email sent.", description="Status message")
