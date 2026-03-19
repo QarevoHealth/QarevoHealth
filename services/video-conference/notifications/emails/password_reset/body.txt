@@ -1,0 +1,14 @@
+Reset your password
+
+Hi {{user_name}},
+
+You requested a password reset. Click the link below to set a new password:
+
+{{reset_link}}
+
+This link expires in {{expiry_minutes}} minutes.
+
+If you did not request this, you can ignore this email. Your password will remain unchanged.
+
+Best regards,
+The Qarevo Health Team

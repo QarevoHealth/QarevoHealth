@@ -3,7 +3,15 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pathlib import Path
-from src.api.auth import login_router, register_router, resend_verification_router, verify_email_router
+from src.api.auth import (
+    forgot_password_router,
+    login_router,
+    register_router,
+    resend_password_reset_router,
+    resend_verification_router,
+    reset_password_router,
+    verify_email_router,
+)
 from src.api.consultations import router as consultations_router
 from src.api.meetings import router as meetings_router
 from src.config import config
@@ -21,6 +29,9 @@ app.include_router(register_router)
 app.include_router(verify_email_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
+app.include_router(forgot_password_router)
+app.include_router(reset_password_router)
+app.include_router(resend_password_reset_router)
 app.include_router(consultations_router)
 app.include_router(meetings_router)
 

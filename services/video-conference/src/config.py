@@ -31,6 +31,12 @@ class Config:
     RESEND_ATTEMPTS_LIMIT: int = int(os.getenv("RESEND_ATTEMPTS_LIMIT", "3"))
     RESEND_ATTEMPTS_WINDOW_HOURS: int = int(os.getenv("RESEND_ATTEMPTS_WINDOW_HOURS", "24"))
     LOCKOUT_HOURS: int = int(os.getenv("LOCKOUT_HOURS", "24"))
+
+    # Password reset
+    PASSWORD_RESET_EXPIRY_MINUTES: int = int(os.getenv("PASSWORD_RESET_EXPIRY_MINUTES", "60"))
+    PASSWORD_RESET_LINK_BASE: str = os.getenv(
+        "PASSWORD_RESET_LINK_BASE", "https://app.qarevohealth.com/reset-password"
+    )
     
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")

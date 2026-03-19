@@ -142,3 +142,77 @@ class ResendVerificationResponse(BaseModel):
     """Response after resending verification email."""
 
     message: str = Field("Verification email sent.", description="Status message")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request to send password reset email."""
+
+    email: EmailStr = Field(..., description="Email address of the account")
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower().strip() if v else v
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Response after requesting password reset (always 200 for security)."""
+
+    message: str = Field(
+        "If an account exists with this email, a password reset link has been sent.",
+        description="Status message",
+    )
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request to reset password with token from email link."""
+
+    token: str = Field(..., min_length=1, description="Reset token from email link")
+    new_password: str = Field(..., min_length=12, max_length=128, description="New password")
+    confirm_password: str = Field(..., min_length=12, max_length=128, description="Confirm new password")
+
+    @field_validator("new_password", "confirm_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Password: 12-128 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char."""
+        if len(v) < 12 or len(v) > 128:
+            raise ValueError("Password must be 12-128 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        """New password and confirm must match."""
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self
+
+
+class ResetPasswordResponse(BaseModel):
+    """Response after successful password reset."""
+
+    message: str = Field("Password has been reset successfully.", description="Status message")
+
+
+class ResendPasswordResetRequest(BaseModel):
+    """Request to resend password reset email."""
+
+    email: EmailStr = Field(..., description="Email address of the account")
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower().strip() if v else v
+
+
+class ResendPasswordResetResponse(BaseModel):
+    """Response after resending password reset email."""
+
+    message: str = Field("Password reset email sent.", description="Status message")
