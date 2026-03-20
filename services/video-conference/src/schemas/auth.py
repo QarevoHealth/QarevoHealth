@@ -127,6 +127,18 @@ class RefreshRequest(BaseModel):
     refresh_token: str = Field(..., description="Refresh token")
 
 
+class LogoutRequest(BaseModel):
+    """Logout request - revoke refresh token."""
+
+    refresh_token: str = Field(..., description="Refresh token to revoke")
+
+
+class LogoutResponse(BaseModel):
+    """Response after logout."""
+
+    message: str = Field("Logged out successfully.", description="Status message")
+
+
 class ResendVerificationRequest(BaseModel):
     """Request to resend verification email."""
 

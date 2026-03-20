@@ -1,12 +1,11 @@
-"""Login and refresh token API."""
+"""Login API - authenticate user and return tokens."""
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from src.database import get_db
-from src.schemas.auth import LoginRequest, LoginResponse, RefreshRequest
+from src.schemas.auth import LoginRequest, LoginResponse
 from src.use_cases.login import execute as login_user
-from src.use_cases.refresh_token import execute as refresh_tokens
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -24,12 +23,4 @@ def login(body: LoginRequest, db: Session = Depends(get_db), request: Request = 
     """Login with email and password. Returns access_token and refresh_token."""
     ip, user_agent = _get_client_info(request) if request else (None, None)
     result = login_user(body, db, ip_address=ip, user_agent=user_agent)
-    return LoginResponse(**result)
-
-
-@router.post("/refresh", response_model=LoginResponse)
-def refresh(body: RefreshRequest, db: Session = Depends(get_db), request: Request = None):
-    """Exchange refresh token for new access_token and refresh_token."""
-    ip, user_agent = _get_client_info(request) if request else (None, None)
-    result = refresh_tokens(body.refresh_token, db, ip_address=ip, user_agent=user_agent)
     return LoginResponse(**result)

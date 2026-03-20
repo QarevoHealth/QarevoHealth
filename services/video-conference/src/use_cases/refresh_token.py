@@ -1,4 +1,10 @@
-"""Refresh token use case - validate refresh token, issue new access + refresh tokens."""
+"""Refresh token use case - access token renewal with refresh token rotation.
+
+Implements:
+- Access token renewal: exchange refresh token for new access + refresh tokens
+- Refresh token rotation: old token invalidated, new one issued (improved security)
+- Token reuse detection: if already-used token is submitted, revoke all user tokens (theft detection)
+"""
 
 import hashlib
 from datetime import datetime, timedelta, timezone
@@ -15,6 +21,17 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _revoke_all_user_tokens(db: Session, user_id, now: datetime) -> None:
+    """Revoke all refresh tokens for a user (used on token reuse detection)."""
+    db.query(RefreshTokenDB).filter(
+        RefreshTokenDB.user_id == user_id,
+        RefreshTokenDB.revoked_at.is_(None),
+    ).update(
+        {RefreshTokenDB.revoked_at: now, RefreshTokenDB.updated_at: now},
+        synchronize_session=False,
+    )
+
+
 def execute(
     refresh_token: str,
     db: Session,
@@ -22,36 +39,48 @@ def execute(
     user_agent: str | None = None,
 ) -> dict:
     """
-    Validate refresh token, mark as used, create new access + refresh tokens.
+    Access token renewal with refresh token rotation.
+
+    Flow:
+    1. Validate refresh token (exists, not revoked, not used, not expired)
+    2. Token reuse detection: if token was already used -> revoke all user tokens, 401 (possible theft)
+    3. Mark old token as used (rotation)
+    4. Create new access token + new refresh token
+    5. Return both for session continuity
+
     Returns access_token, refresh_token, expires_in.
     """
     token_hash = _hash_token(refresh_token)
     now = datetime.now(timezone.utc)
 
-    token_record = (
-        db.query(RefreshTokenDB)
-        .filter(
-            RefreshTokenDB.token_hash == token_hash,
-            RefreshTokenDB.revoked_at.is_(None),
-            RefreshTokenDB.is_used == False,
-        )
-        .first()
-    )
+    # Find token (any state - we need to detect reuse)
+    token_record = db.query(RefreshTokenDB).filter(RefreshTokenDB.token_hash == token_hash).first()
+
     if not token_record:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-
-    if token_record.expires_at < now:
-        raise HTTPException(status_code=401, detail="Refresh token has expired")
-
+    
     user = db.query(UserDB).filter(UserDB.id == token_record.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Mark old token as used
+    # Token reuse detection: already used = possible theft, revoke all user tokens
+    if token_record.is_used or token_record.revoked_at:
+        _revoke_all_user_tokens(db, token_record.user_id, now)
+        db.commit()
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token was already used. Session invalidated for security. Please log in again.",
+        )
+
+    if token_record.expires_at < now:
+        raise HTTPException(status_code=401, detail="Refresh token has expired")
+
+    # Rotation: mark old token as used
     token_record.is_used = True
+    token_record.revoked_at = now
     token_record.updated_at = now
 
-    # Create new tokens
+    # Create new tokens (access renewal + refresh rotation)
     access_token = create_access_token(user.id, user.email, user.role)
     raw_refresh, new_token_hash = create_refresh_token()
     expires_at = now + timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
