@@ -112,7 +112,7 @@ def execute(email: str, db: Session) -> dict:
     user = db.query(UserDB).filter(UserDB.email.ilike(email_lower)).first()
     if not user:
         # Same as forgot-password: don't reveal if user exists
-        return {"message": "Password reset email sent."}
+        return {"message": "Unable to find user."}
 
     # Check lockout
     lockout = _check_lockout(db, user.id, TokenType.PASSWORD_RESET)

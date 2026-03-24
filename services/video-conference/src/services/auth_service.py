@@ -1,5 +1,6 @@
 """Auth service - password hashing, JWT tokens."""
 
+import base64
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -13,14 +14,20 @@ from src.config import config
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _prepare_password(password: str) -> str:
+    """SHA-256 hash → base64 encode → safe 44-char string for bcrypt (bypasses 72-byte limit)."""
+    digest = hashlib.sha256(password.encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("utf-8")
+
+
 def hash_password(password: str) -> str:
-    """Hash a password using bcrypt."""
-    return pwd_context.hash(password)
+    """Hash a password using bcrypt (pre-hashed with SHA-256 to avoid 72-byte limit)."""
+    return pwd_context.hash(_prepare_password(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(_prepare_password(plain_password), hashed_password)
 
 
 def create_access_token(user_id: UUID, email: str | None, role: str | None) -> str:

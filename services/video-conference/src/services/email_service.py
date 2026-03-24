@@ -63,4 +63,4 @@ def send_email(
         client.send_email(**send_kwargs)
         return True
     except ClientError:
-        return False
+       return False
