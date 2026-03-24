@@ -6,10 +6,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
+from src.api.errors import handle_aws_error
 from src.database import get_db
 from src.constants.meeting import CONFIG_MEETING
 from src.models import (
-    AppointmentDB,
     ConsultationDB,
     ConsultationProviderDB,
     ConsultationProviderDetail,
@@ -17,7 +17,6 @@ from src.models import (
     ConsultationResponse,
     JoinedAttendeeDetail,
     ProviderDB,
-    VideoSessionDB,
     VideoSessionAttendeeDB,
     VideoSessionJoinRequest,
     VideoSessionJoinResponse,
@@ -37,25 +36,20 @@ def get_consultation_api(consultation_id: UUID, db: Session = Depends(get_db)):
     Includes scheduled time, status, identifiers, and who has joined.
     Uses Option 1: direct video_sessions query by consultation_id (minimal DB load).
     """
-    # 1. Load consultation (needed for metadata)
-    consultation = db.query(ConsultationDB).filter(
-        ConsultationDB.id == consultation_id
-    ).first()
+    consultation = (
+        db.query(ConsultationDB)
+        .options(
+            joinedload(ConsultationDB.video_sessions),
+            joinedload(ConsultationDB.appointment),
+        )
+        .filter(ConsultationDB.id == consultation_id)
+        .first()
+    )
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
 
-    # 2. Option 1: Direct query video_sessions by consultation_id (indexed)
-    video_session = db.query(VideoSessionDB).filter(
-        VideoSessionDB.consultation_id == consultation_id
-    ).first()
-
-    # 3. Get appointment_id if linked
-    appointment_id = None
-    appointment = db.query(AppointmentDB).filter(
-        AppointmentDB.consultation_id == consultation_id
-    ).first()
-    if appointment:
-        appointment_id = appointment.id
+    video_session = consultation.video_sessions[0] if consultation.video_sessions else None
+    appointment_id = consultation.appointment.id if consultation.appointment else None
 
     # 4. Get joined attendees with user details (joinedload avoids N+1)
     joined_attendees: List[JoinedAttendeeDetail] = []
@@ -161,15 +155,7 @@ def join_video_session_api(
     except HTTPException:
         raise
     except Exception as e:
-        from botocore.exceptions import ClientError
-
-        if isinstance(e, ClientError):
-            error_code = e.response.get("Error", {}).get("Code", "")
-            if error_code == "NotFoundException":
-                raise HTTPException(status_code=404, detail="Meeting not found")
-            if error_code == "BadRequestException":
-                raise HTTPException(status_code=400, detail=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
+        handle_aws_error(e)
     
 
 @router.post(
@@ -191,14 +177,4 @@ def end_video_session_api(
     except HTTPException:
         raise
     except Exception as e:
-        from botocore.exceptions import ClientError
-
-        if isinstance(e, ClientError):
-            error_code = e.response.get("Error", {}).get("Code", "")
-            if error_code == "NotFoundException":
-                raise HTTPException(status_code=404, detail="Meeting not found")
-            if error_code == "BadRequestException":
-                raise HTTPException(status_code=400, detail=str(e))
-        raise HTTPException(status_code=500, detail=str(e))
-
-
+        handle_aws_error(e)

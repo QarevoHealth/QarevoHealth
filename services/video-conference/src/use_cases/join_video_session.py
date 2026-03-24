@@ -5,37 +5,19 @@ from uuid import UUID
 
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from src.chime_client import create_attendee, create_meeting_with_attendees, get_meeting
-from src.config import config
 from src.models import (
     ConsultationDB,
     ConsultationProviderDB,
-    PatientDB,
-    ProviderDB,
     UserDB,
     VideoSessionAttendeeDB,
     VideoSessionDB,
 )
 from src.models.schemas import VideoSessionJoinRequest, VideoSessionJoinResponse
 from src.constants.meeting import CONFIG_MEETING
-
-
-def _get_join_role(consultation: ConsultationDB, user_id: UUID, db: Session) -> str:
-    """Return PATIENT or PROVIDER based on consultation membership."""
-    patient = db.query(PatientDB).filter(PatientDB.id == consultation.patient_id).first()
-    if patient and patient.user_id == user_id:
-        return CONFIG_MEETING.ROLE.PATIENT
-    provider_ids = [
-        cp.provider_id for cp in db.query(ConsultationProviderDB)
-        .filter(ConsultationProviderDB.consultation_id == consultation.id).all()
-    ]
-    if provider_ids:
-        providers = db.query(ProviderDB).filter(ProviderDB.id.in_(provider_ids)).all()
-        if any(p.user_id == user_id for p in providers):
-            return CONFIG_MEETING.ROLE.PROVIDER
-    return CONFIG_MEETING.ROLE.PROVIDER  # fallback (e.g. admin joining)
+from src.utils import build_join_response, get_join_role
 
 
 def _ensure_chime_meeting(
@@ -106,15 +88,20 @@ def execute(
     """
     now = datetime.now(timezone.utc)
 
-    consultation = db.query(ConsultationDB).filter(
-        ConsultationDB.id == consultation_id
-    ).first()
+    consultation = (
+        db.query(ConsultationDB)
+        .options(
+            joinedload(ConsultationDB.patient),
+            joinedload(ConsultationDB.consultation_providers).joinedload(ConsultationProviderDB.provider),
+            joinedload(ConsultationDB.video_sessions),
+        )
+        .filter(ConsultationDB.id == consultation_id)
+        .first()
+    )
     if not consultation:
         raise HTTPException(status_code=404, detail="Consultation not found")
 
-    video_session = db.query(VideoSessionDB).filter(
-        VideoSessionDB.consultation_id == consultation_id
-    ).first()
+    video_session = consultation.video_sessions[0] if consultation.video_sessions else None
 
     if not video_session:
         video_session = VideoSessionDB(
@@ -123,13 +110,13 @@ def execute(
             status=CONFIG_MEETING.VIDEO_SESSION_STATUS.SCHEDULED,
         )
         db.add(video_session)
-        db.flush()
+        db.flush()  # Required: need video_session.id for _ensure_chime_meeting
 
     user = db.query(UserDB).filter(UserDB.id == request.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail=f"User {request.user_id} not found")
 
-    role = _get_join_role(consultation, request.user_id, db)
+    role = get_join_role(consultation, request.user_id)
     meeting_id = video_session.meeting_id
 
     if not meeting_id:
@@ -141,14 +128,7 @@ def execute(
             consultation.started_at = now
             video_session.started_at = now
             db.commit()
-        join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={attendee_id}"
-        return VideoSessionJoinResponse(
-            meeting_id=meeting_id,
-            attendee_id=attendee_id,
-            join_token=join_token,
-            media_placement=media_placement,
-            join_url=join_url,
-        )
+        return build_join_response(meeting_id, attendee_id, join_token, media_placement)
 
     existing = db.query(VideoSessionAttendeeDB).filter(
         VideoSessionAttendeeDB.video_session_id == video_session.id,
@@ -168,12 +148,8 @@ def execute(
                 if existing.joined_at is None:
                     existing.joined_at = now
                 db.commit()
-                return VideoSessionJoinResponse(
-                    meeting_id=meeting_id,
-                    attendee_id=existing.attendee_id,
-                    join_token=join_token,
-                    media_placement=media_placement,
-                    join_url=f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={existing.attendee_id}",
+                return build_join_response(
+                    meeting_id, existing.attendee_id, join_token, media_placement
                 )
 
         response = create_attendee(meeting_id=meeting_id, external_user_id=str(request.user_id))
@@ -198,14 +174,7 @@ def execute(
 
         meeting = get_meeting(meeting_id)
         media_placement = meeting.get("MediaPlacement", {})
-        join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={attendee_id}"
-        return VideoSessionJoinResponse(
-            meeting_id=meeting_id,
-            attendee_id=attendee_id,
-            join_token=join_token,
-            media_placement=media_placement,
-            join_url=join_url,
-        )
+        return build_join_response(meeting_id, attendee_id, join_token, media_placement)
 
     try:
         return _try_get_join_payload()
@@ -222,11 +191,4 @@ def execute(
             consultation.started_at = now
             video_session.started_at = now
             db.commit()
-        join_url = f"{config.APP_JOIN_URL}?meetingId={meeting_id}&joinToken={join_token}&attendeeId={attendee_id}"
-        return VideoSessionJoinResponse(
-            meeting_id=meeting_id,
-            attendee_id=attendee_id,
-            join_token=join_token,
-            media_placement=media_placement,
-            join_url=join_url,
-        )
+        return build_join_response(meeting_id, attendee_id, join_token, media_placement)
