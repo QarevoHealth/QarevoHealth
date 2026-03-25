@@ -165,7 +165,7 @@ def execute(email: str, db: Session) -> dict:
     subject, html_body, text_body = load_email_template(
         "welcome_verification",
         context={
-            "user_name": user.full_name,
+            "user_name": user.first_name,
             "verification_link": verification_link,
             "expiry_hours": config.EMAIL_VERIFICATION_EXPIRY_HOURS,
         },

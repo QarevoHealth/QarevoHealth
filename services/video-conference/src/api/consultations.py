@@ -69,7 +69,7 @@ def get_consultation_api(consultation_id: UUID, db: Session = Depends(get_db)):
                 participant_user_id=a.participant_user_id,
                 participant_role=a.participant_role or CONFIG_MEETING.ROLE.PROVIDER,
                 joined_at=a.joined_at,
-                full_name=a.participant_user.full_name if a.participant_user else None,
+                full_name=f"{a.participant_user.first_name} {a.participant_user.last_name}".strip() if a.participant_user else None,
                 email=a.participant_user.email if a.participant_user else None,
             )
             for a in attendees
@@ -117,7 +117,7 @@ def get_consultation_providers_api(consultation_id: UUID, db: Session = Depends(
             ConsultationProviderDetail(
                 provider_id=p.id,
                 user_id=p.user_id,
-                full_name=u.full_name if u else None,
+                full_name=f"{u.first_name} {u.last_name}".strip() if u else None,
                 email=u.email if u else None,
                 phone=u.phone if u else None,
                 role=cp.role,

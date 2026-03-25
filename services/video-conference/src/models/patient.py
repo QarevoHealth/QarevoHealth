@@ -17,7 +17,6 @@ class PatientDB(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
-    full_name = Column(String, nullable=True)
     date_of_birth = Column(Date, nullable=True)
     gender = Column(String, nullable=True)
     external_patient_id = Column(String, nullable=True, index=True)

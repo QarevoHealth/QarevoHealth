@@ -38,7 +38,9 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
     try:
         # Create user
         user = UserDB(
-            full_name=request.name,
+            first_name=request.first_name,
+            middle_name=request.middle_name,
+            last_name=request.last_name,
             tenant_id=tenant_id,
             role=CONFIG_USER.ROLE.PATIENT,
             email=email_lower,
@@ -53,7 +55,6 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         # Create patient (no flush needed - patient.id not used; user.id from flush above)
         patient = PatientDB(
             user_id=user.id,
-            full_name=request.name,
             date_of_birth=request.date_of_birth,
             gender=request.gender,
         )
@@ -82,7 +83,7 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         send_verification_email(
             user_id=user.id,
             user_email=email_lower,
-            user_name=request.name,
+            user_name=request.first_name,
             db=db,
         )
 

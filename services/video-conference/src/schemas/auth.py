@@ -37,7 +37,9 @@ class ConsentsInput(BaseModel):
 class RegisterRequest(BaseModel):
     """Registration request with validation."""
 
-    name: str = Field(..., min_length=1, max_length=255, description="Full name")
+    first_name: str = Field(..., min_length=1, max_length=100, description="First name")
+    middle_name: str | None = Field(None, max_length=100, description="Middle name (optional)")
+    last_name: str = Field(..., min_length=1, max_length=100, description="Last name")
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=8, max_length=128, description="Password")
     phone: str = Field(..., min_length=1, max_length=20, description="Phone number")
@@ -46,12 +48,17 @@ class RegisterRequest(BaseModel):
     gender: str = Field(..., description="Gender: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
     consents: ConsentsInput = Field(..., description="Consent flags (terms_privacy, telehealth mandatory)")
 
-    @field_validator("name")
+    @field_validator("first_name", "last_name")
     @classmethod
     def name_not_empty(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("Name cannot be empty")
         return v.strip()
+
+    @field_validator("middle_name")
+    @classmethod
+    def middle_name_strip(cls, v: str | None) -> str | None:
+        return v.strip() if v and v.strip() else None
 
     @field_validator("gender")
     @classmethod
