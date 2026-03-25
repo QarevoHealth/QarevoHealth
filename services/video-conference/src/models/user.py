@@ -23,6 +23,7 @@ class UserDB(Base):
     role = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
     email_verified = Column(Boolean, nullable=False, default=False)
+    country_code = Column(String(10), nullable=True)
     phone = Column(String, nullable=True)
     password_hash = Column(Text, nullable=True)
     status = Column(String, nullable=True)

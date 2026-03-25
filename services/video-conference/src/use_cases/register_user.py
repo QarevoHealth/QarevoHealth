@@ -1,6 +1,5 @@
 """Register user use case - creates user, patient, and consents."""
 
-import re
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -11,12 +10,6 @@ from src.models import ConsentType, PatientDB, UserConsentDB, UserDB
 from src.use_cases.send_verification_email import execute as send_verification_email
 from src.schemas.auth import RegisterRequest
 from src.services.auth_service import hash_password
-
-
-def _normalize_phone(country_code: str, phone: str) -> str:
-    """Store phone as digits only (no spaces, dashes, or plus)."""
-    digits = re.sub(r"\D", "", f"{country_code}{phone}")
-    return digits
 
 
 def execute(request: RegisterRequest, db: Session, ip_address: str | None = None):
@@ -30,11 +23,6 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
     # Patients don't have tenant association - tenant_id is blank/null
     tenant_id = None
 
-    # Phone: digits only (no spaces, dashes, or plus)
-    phone_normalized = _normalize_phone(
-        request.country_code.strip(), request.phone.strip()
-    )
-
     try:
         # Create user
         user = UserDB(
@@ -44,7 +32,8 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
             tenant_id=tenant_id,
             role=CONFIG_USER.ROLE.PATIENT,
             email=email_lower,
-            phone=phone_normalized,
+            country_code=request.country_code.strip(),
+            phone=request.phone.strip(),
             password_hash=hash_password(request.password),
             status=CONFIG_USER.STATUS.PENDING_VERIFICATION,
             email_verified=False,

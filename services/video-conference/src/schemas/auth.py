@@ -70,12 +70,26 @@ class RegisterRequest(BaseModel):
             raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
         return v.strip().upper()
 
+    @field_validator("phone")
+    @classmethod
+    def phone_numeric(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Phone number cannot be empty")
+        if not stripped.isdigit():
+            raise ValueError("Phone number must contain digits only")
+        return stripped
+
     @field_validator("country_code")
     @classmethod
     def country_code_valid(cls, v: str) -> str:
-        if not v or not v.strip():
+        stripped = v.strip()
+        if not stripped:
             raise ValueError("Country code cannot be empty")
-        return v.strip()
+        digits = stripped.lstrip("+")
+        if not digits.isdigit():
+            raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
+        return stripped
 
     @field_validator("email")
     @classmethod
