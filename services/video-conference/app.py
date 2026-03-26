@@ -14,6 +14,7 @@ from src.api.auth import (
     reset_password_router,
     verify_email_router,
 )
+from src.api.users import me_router
 from src.api.consultations import router as consultations_router
 from src.api.meetings import router as meetings_router
 from src.config import config
@@ -29,6 +30,7 @@ app = FastAPI(
 # Mount routes
 app.include_router(register_router)
 app.include_router(verify_email_router)
+app.include_router(me_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
 app.include_router(refresh_token_router)
