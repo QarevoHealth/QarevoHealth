@@ -13,7 +13,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from src.config import config
-from src.models import RefreshTokenDB, UserDB
+from src.constants.failure_reasons import FailureReason
+from src.models import AuditEventCategory, AuditEventType, RefreshTokenDB, UserDB
+from src.services.audit_service import write_audit_log
 from src.services.auth_service import create_access_token, create_refresh_token
 
 
@@ -53,12 +55,11 @@ def execute(
     token_hash = _hash_token(refresh_token)
     now = datetime.now(timezone.utc)
 
-    # Find token (any state - we need to detect reuse)
     token_record = db.query(RefreshTokenDB).filter(RefreshTokenDB.token_hash == token_hash).first()
 
     if not token_record:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-    
+
     user = db.query(UserDB).filter(UserDB.id == token_record.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -66,6 +67,16 @@ def execute(
     # Token reuse detection: already used = possible theft, revoke all user tokens
     if token_record.is_used or token_record.revoked_at:
         _revoke_all_user_tokens(db, token_record.user_id, now)
+        write_audit_log(
+            db,
+            event_type=AuditEventType.TOKEN_REUSE_DETECTED,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=token_record.user_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.REFRESH_TOKEN_REUSE_DETECTED,
+        )
         db.commit()
         raise HTTPException(
             status_code=401,
@@ -80,12 +91,10 @@ def execute(
     token_record.revoked_at = now
     token_record.updated_at = now
 
-    # Create new tokens (access renewal + refresh rotation)
     access_token = create_access_token(user.id, user.email, user.role)
     raw_refresh, new_token_hash = create_refresh_token()
     expires_at = now + timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
 
-    # Store new refresh token
     new_refresh = RefreshTokenDB(
         user_id=user.id,
         token_hash=new_token_hash,
@@ -94,6 +103,17 @@ def execute(
         user_agent=user_agent,
     )
     db.add(new_refresh)
+
+    write_audit_log(
+        db,
+        event_type=AuditEventType.TOKEN_REFRESHED,
+        event_category=AuditEventCategory.AUTH,
+        success=True,
+        actor_user_id=user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
     db.commit()
 
     expires_in_seconds = config.ACCESS_TOKEN_EXPIRE_MINUTES * 60

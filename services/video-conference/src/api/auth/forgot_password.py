@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.database import get_db
+from src.dependencies.client_info import ClientInfo, get_client_info
 from src.schemas.auth import ForgotPasswordRequest, ForgotPasswordResponse
 from src.use_cases.request_password_reset import execute as request_password_reset
 
@@ -11,12 +12,16 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
-def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(
+    body: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+    client: ClientInfo = Depends(get_client_info),
+):
     """
     Request password reset - sends email with link if account exists.
 
     Always returns 200 for security (does not reveal if email exists).
     3 attempts per day, then 1-day lockout. Link valid for 60 minutes (configurable).
     """
-    result = request_password_reset(body.email, db)
+    result = request_password_reset(body.email, db, ip_address=client.ip_address, user_agent=client.user_agent)
     return ForgotPasswordResponse(**result)

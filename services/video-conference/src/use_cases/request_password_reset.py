@@ -7,17 +7,22 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from src.config import config
-from src.models import PasswordResetTokenDB, UserDB
+from src.models import AuditEventCategory, AuditEventType, PasswordResetTokenDB, UserDB
+from src.services.audit_service import write_audit_log
 from src.services.email_service import send_email
 from src.services.notification_loader import load_email_template
 
 
 def _hash_token(token: str) -> str:
-    """SHA-256 hash of token for storage."""
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def execute(email: str, db: Session) -> dict:
+def execute(
+    email: str,
+    db: Session,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
     """
     Request password reset - sends email with link if user exists.
 
@@ -30,15 +35,15 @@ def execute(email: str, db: Session) -> dict:
     if not user:
         return {"message": "If an account exists with this email, a password reset link has been sent."}
 
-    # Invalidate any existing unused tokens for this user
     now = datetime.now(timezone.utc)
+
+    # Invalidate any existing unused tokens
     db.query(PasswordResetTokenDB).filter(
         PasswordResetTokenDB.user_id == user.id,
         PasswordResetTokenDB.used_at.is_(None),
         PasswordResetTokenDB.invalidated_at.is_(None),
     ).update({PasswordResetTokenDB.invalidated_at: now}, synchronize_session=False)
 
-    # Create new token
     raw_token = secrets.token_urlsafe(32)
     token_hash = _hash_token(raw_token)
     expires_at = now + timedelta(minutes=config.PASSWORD_RESET_EXPIRY_MINUTES)
@@ -62,6 +67,17 @@ def execute(email: str, db: Session) -> dict:
     )
 
     send_email(to_email=email_lower, subject=subject, html_body=html_body, text_body=text_body)
+
+    write_audit_log(
+        db,
+        event_type=AuditEventType.PASSWORD_RESET_REQUEST,
+        event_category=AuditEventCategory.AUTH,
+        success=True,
+        actor_user_id=user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
     db.commit()
 
     return {"message": "If an account exists with this email, a password reset link has been sent."}
