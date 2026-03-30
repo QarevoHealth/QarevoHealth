@@ -3,17 +3,22 @@
 import hashlib
 from datetime import datetime, timezone
 
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from src.models import RefreshTokenDB
+from src.models import AuditEventCategory, AuditEventType, RefreshTokenDB
+from src.services.audit_service import write_audit_log
 
 
 def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def execute(refresh_token: str, db: Session) -> dict:
+def execute(
+    refresh_token: str,
+    db: Session,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
     """
     Revoke refresh token (logout).
 
@@ -33,11 +38,22 @@ def execute(refresh_token: str, db: Session) -> dict:
     )
 
     if not token_record:
-        # Token already revoked or invalid - treat as success (idempotent logout)
+        # Already revoked or invalid — idempotent, no audit needed
         return {"message": "Logged out successfully."}
 
     token_record.revoked_at = now
     token_record.updated_at = now
+
+    write_audit_log(
+        db,
+        event_type=AuditEventType.LOGOUT,
+        event_category=AuditEventCategory.AUTH,
+        success=True,
+        actor_user_id=token_record.user_id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+
     db.commit()
 
     return {"message": "Logged out successfully."}

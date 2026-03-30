@@ -8,7 +8,10 @@ from sqlalchemy.orm import Session
 
 from src.config import config
 from src.constants.user import CONFIG_USER
+from src.constants.failure_reasons import FailureReason
 from src.models import (
+    AuditEventCategory,
+    AuditEventType,
     AttemptType,
     EmailVerificationTokenDB,
     TokenType,
@@ -16,16 +19,15 @@ from src.models import (
     UserTokenAttemptDB,
     UserTokenLockoutDB,
 )
+from src.services.audit_service import write_audit_log
 from src.use_cases.resend_verification_email import _create_lockout, _count_attempts
 
 
 def _hash_token(token: str) -> str:
-    """SHA-256 hash of token for lookup."""
     return hashlib.sha256(token.encode()).hexdigest()
 
 
 def _record_failed_attempt(db: Session, user_id, token_type: str, attempt_type: str) -> None:
-    """Record failed verification attempt (counts toward 3-attempt limit)."""
     attempt = UserTokenAttemptDB(
         user_id=user_id,
         token_type=token_type,
@@ -35,7 +37,6 @@ def _record_failed_attempt(db: Session, user_id, token_type: str, attempt_type: 
 
 
 def _check_lockout(db: Session, user_id) -> bool:
-    """Return True if user is locked."""
     now = datetime.now(timezone.utc)
     return (
         db.query(UserTokenLockoutDB)
@@ -49,7 +50,12 @@ def _check_lockout(db: Session, user_id) -> bool:
     )
 
 
-def execute(token: str, db: Session) -> dict:
+def execute(
+    token: str,
+    db: Session,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
     """
     Verify email token. Mark token used, set user email_verified=True, status=ACTIVE.
 
@@ -59,7 +65,6 @@ def execute(token: str, db: Session) -> dict:
     token_hash = _hash_token(token)
     now = datetime.now(timezone.utc)
 
-    # Find token by hash (any - used, invalidated, or valid)
     token_record = (
         db.query(EmailVerificationTokenDB)
         .filter(EmailVerificationTokenDB.token_hash == token_hash)
@@ -73,44 +78,77 @@ def execute(token: str, db: Session) -> dict:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Check lockout
     if _check_lockout(db, user.id):
-        raise HTTPException(
-            status_code=429,
-            detail="Too many attempts. Please try again later.",
-        )
+        raise HTTPException(status_code=429, detail="Too many attempts. Please try again later.")
 
-    # Token invalidated (superseded by resend)
     if token_record.invalidated_at is not None:
         _record_failed_attempt(db, user.id, TokenType.EMAIL_VERIFICATION, AttemptType.VERIFY_FAIL)
         attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
         if attempts >= config.RESEND_ATTEMPTS_LIMIT:
             _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
+        write_audit_log(
+            db,
+            event_type=AuditEventType.EMAIL_VERIFICATION_FAILED,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.EMAIL_VERIFICATION_TOKEN_INVALIDATED,
+        )
         db.commit()
         raise HTTPException(status_code=400, detail="Verification link has been replaced. Please use the latest link.")
 
-    # Token already used (successfully verified)
     if token_record.used_at is not None:
         _record_failed_attempt(db, user.id, TokenType.EMAIL_VERIFICATION, AttemptType.VERIFY_FAIL)
         attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
         if attempts >= config.RESEND_ATTEMPTS_LIMIT:
             _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
+        write_audit_log(
+            db,
+            event_type=AuditEventType.EMAIL_VERIFICATION_FAILED,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.EMAIL_VERIFICATION_TOKEN_ALREADY_USED,
+        )
         db.commit()
         raise HTTPException(status_code=400, detail="Verification link has already been used")
 
-    # Token expired
     if token_record.expires_at < now:
         _record_failed_attempt(db, user.id, TokenType.EMAIL_VERIFICATION, AttemptType.VERIFY_FAIL)
         attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
         if attempts >= config.RESEND_ATTEMPTS_LIMIT:
             _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
+        write_audit_log(
+            db,
+            event_type=AuditEventType.EMAIL_VERIFICATION_FAILED,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.EMAIL_VERIFICATION_TOKEN_EXPIRED,
+        )
         db.commit()
         raise HTTPException(status_code=400, detail="Verification link has expired")
 
-    # Valid token - proceed
+    # Valid token — activate user
     token_record.used_at = now
     user.email_verified = True
     user.status = CONFIG_USER.STATUS.ACTIVE
+
+    write_audit_log(
+        db,
+        event_type=AuditEventType.EMAIL_VERIFIED,
+        event_category=AuditEventCategory.AUTH,
+        success=True,
+        actor_user_id=user.id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
 
     db.commit()
     return {"message": "Email verified successfully."}

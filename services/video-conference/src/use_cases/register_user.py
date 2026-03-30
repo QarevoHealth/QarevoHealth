@@ -6,7 +6,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from src.constants.user import CONFIG_USER
-from src.models import ConsentType, PatientDB, UserConsentDB, UserDB
+from src.constants.failure_reasons import FailureReason
+from src.models import AuditEventCategory, AuditEventType, ConsentType, PatientDB, UserConsentDB, UserDB
+from src.services.audit_service import write_audit_log
 from src.use_cases.send_verification_email import execute as send_verification_email
 from src.schemas.auth import RegisterRequest
 from src.services.auth_service import hash_password
@@ -14,17 +16,24 @@ from src.services.auth_service import hash_password
 
 def execute(request: RegisterRequest, db: Session, ip_address: str | None = None):
     """Register a new user (patient) with consents."""
-    # Check email uniqueness (case-insensitive)
     email_lower = request.email.lower().strip()
     existing = db.query(UserDB).filter(UserDB.email.ilike(email_lower)).first()
     if existing:
+        write_audit_log(
+            db,
+            event_type=AuditEventType.REGISTER_FAILURE,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            ip_address=ip_address,
+            failure_reason=FailureReason.EMAIL_ALREADY_REGISTERED,
+            extra_data={"email": email_lower},
+            commit=True,
+        )
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Patients don't have tenant association - tenant_id is blank/null
     tenant_id = None
 
     try:
-        # Create user
         user = UserDB(
             first_name=request.first_name,
             middle_name=request.middle_name,
@@ -41,7 +50,6 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         db.add(user)
         db.flush()
 
-        # Create patient (no flush needed - patient.id not used; user.id from flush above)
         patient = PatientDB(
             user_id=user.id,
             date_of_birth=request.date_of_birth,
@@ -49,7 +57,6 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         )
         db.add(patient)
 
-        # Create consents
         now = datetime.now(timezone.utc)
         consent_map = {
             ConsentType.TERMS_PRIVACY: request.consents.terms_privacy,
@@ -68,12 +75,21 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         ]
         db.add_all(consent_records)
 
-        # Create verification token (stored in DB) and send welcome + verification email
         send_verification_email(
             user_id=user.id,
             user_email=email_lower,
             user_name=request.first_name,
             db=db,
+        )
+
+        write_audit_log(
+            db,
+            event_type=AuditEventType.REGISTER,
+            event_category=AuditEventCategory.AUTH,
+            success=True,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            extra_data={"email": email_lower, "role": CONFIG_USER.ROLE.PATIENT},
         )
 
         db.commit()

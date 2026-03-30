@@ -1,5 +1,6 @@
 """Database models and request/response schemas."""
 
+from src.models.audit_log import AuditEventCategory, AuditEventType, AuditLogDB
 from src.models.appointment import AppointmentDB
 from src.models.appointment_provider import AppointmentProviderDB
 from src.models.consultation import ConsultationDB
@@ -39,6 +40,9 @@ from src.models.video_session_artifact import VideoSessionArtifactDB
 from src.models.video_session_attendee import VideoSessionAttendeeDB
 
 __all__ = [
+    "AuditEventCategory",
+    "AuditEventType",
+    "AuditLogDB",
     "AppointmentDB",
     "AuthProvider",
     "AppointmentProviderDB",
