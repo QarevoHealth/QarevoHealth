@@ -59,7 +59,6 @@ def execute(
 
     if not token_record:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-
     user = db.query(UserDB).filter(UserDB.id == token_record.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
