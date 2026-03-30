@@ -25,8 +25,6 @@ def login(body: LoginRequest, db: Session = Depends(get_db), request: Request = 
     ip, user_agent = _get_client_info(request) if request else (None, None)
     result = login_user(body, db, ip_address=ip, user_agent=user_agent)
     return LoginResponse(**result)
-<<<<<<< HEAD
-=======
 
 
 @router.post("/refresh", response_model=LoginResponse)
@@ -35,4 +33,3 @@ def refresh(body: RefreshRequest, db: Session = Depends(get_db), request: Reques
     ip, user_agent = _get_client_info(request) if request else (None, None)
     result = refresh_tokens(body.refresh_token, db, ip_address=ip, user_agent=user_agent)
     return LoginResponse(**result)
->>>>>>> 61d766417be04ad2ef49de254773dc6cd19879ff
