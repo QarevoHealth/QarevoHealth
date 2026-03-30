@@ -39,19 +39,7 @@ def execute(
     user_agent: str | None = None,
 ) -> dict:
     """
-<<<<<<< HEAD
-    Access token renewal with refresh token rotation.
-
-    Flow:
-    1. Validate refresh token (exists, not revoked, not used, not expired)
-    2. Token reuse detection: if token was already used -> revoke all user tokens, 401 (possible theft)
-    3. Mark old token as used (rotation)
-    4. Create new access token + new refresh token
-    5. Return both for session continuity
-
-=======
     Validate refresh token, mark as used, create new access + refresh tokens.
->>>>>>> 8e36e99d9abb91d1989472564d615f2633b0a8c4
     Returns access_token, refresh_token, expires_in.
     """
     token_hash = _hash_token(refresh_token)
