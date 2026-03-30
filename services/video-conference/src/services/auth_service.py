@@ -10,6 +10,7 @@ from passlib.context import CryptContext
 
 from src.config import config
 
+"""Auth service - password hashing, token helpers."""
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
