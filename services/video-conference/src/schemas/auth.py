@@ -197,6 +197,16 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError("Password must contain at least one special character")
         return v
 
+<<<<<<< HEAD
+=======
+    @model_validator(mode="after")
+    def passwords_match(self):
+        """New password and confirm must match."""
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self
+
+>>>>>>> 61d766417be04ad2ef49de254773dc6cd19879ff
 
 class ResetPasswordResponse(BaseModel):
     """Response after successful password reset."""
