@@ -3,9 +3,17 @@
 # ----------------------------
 .DS_Store
 Thumbs.db
+Desktop.ini
+ehthumbs.db
+._*
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
 
 # ----------------------------
 # Terraform
@@ -13,18 +21,28 @@ Thumbs.db
 **/.terraform/*
 *.tfstate
 *.tfstate.*
+.terraform.lock.hcl
 crash.log
 crash.*.log
 terraform.rc
 .terraformrc
 
-# If you want to avoid committing real tfvars (recommended)
+# Avoid committing real tfvars
 *.tfvars
 *.tfvars.json
 
-# Exception: keep example tfvars in repo
+# Allow example tfvars
 !*.tfvars.example
 !*.tfvars.json.example
+
+# ----------------------------
+# Environment / secrets
+# ----------------------------
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
 
 # ----------------------------
 # Node / Next.js
@@ -39,27 +57,74 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# env files (secrets)
-.env
-.env.*
-!.env.example
-
 # ----------------------------
 # Python
 # ----------------------------
 __pycache__/
 *.py[cod]
-.venv/
+*$py.class
+*.so
+.Python
+
+# Virtual environments
 venv/
-.env/
+.venv/
+env/
+ENV/
+
+# Packaging / build
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Tooling caches
 pip-wheel-metadata/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.dmypy.json
+dmypy.json
+
+# Coverage
 .coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
 
 # ----------------------------
-# Logs
+# Logs & temp
 # ----------------------------
 *.log
 logs/
+tmp/
+temp/
+*.tmp
+.cache/
+
+# ----------------------------
+# Database
+# ----------------------------
+*.db
+*.sqlite
+*.sqlite3
+video_conference.db
+
+# ----------------------------
+# Jupyter
+# ----------------------------
+.ipynb_checkpoints/
