@@ -6,6 +6,8 @@ from pathlib import Path
 from src.api.auth import (
     forgot_password_router,
     login_router,
+    logout_router,
+    refresh_token_router,
     register_router,
     resend_password_reset_router,
     resend_verification_router,
@@ -29,6 +31,8 @@ app.include_router(register_router)
 app.include_router(verify_email_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
+app.include_router(refresh_token_router)
+app.include_router(logout_router)
 app.include_router(forgot_password_router)
 app.include_router(reset_password_router)
 app.include_router(resend_password_reset_router)

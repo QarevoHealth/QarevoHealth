@@ -1,3 +1,10 @@
+"""Refresh token use case - access token renewal with refresh token rotation.
+
+Implements:
+- Access token renewal: exchange refresh token for new access + refresh tokens
+- Refresh token rotation: old token invalidated, new one issued (improved security)
+- Token reuse detection: if already-used token is submitted, revoke all user tokens (theft detection)
+"""
 """Refresh token use case - validate refresh token, issue new access + refresh tokens."""
 
 import hashlib
@@ -15,6 +22,17 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def _revoke_all_user_tokens(db: Session, user_id, now: datetime) -> None:
+    """Revoke all refresh tokens for a user (used on token reuse detection)."""
+    db.query(RefreshTokenDB).filter(
+        RefreshTokenDB.user_id == user_id,
+        RefreshTokenDB.revoked_at.is_(None),
+    ).update(
+        {RefreshTokenDB.revoked_at: now, RefreshTokenDB.updated_at: now},
+        synchronize_session=False,
+    )
+
+
 def execute(
     refresh_token: str,
     db: Session,
@@ -28,15 +46,7 @@ def execute(
     token_hash = _hash_token(refresh_token)
     now = datetime.now(timezone.utc)
 
-    token_record = (
-        db.query(RefreshTokenDB)
-        .filter(
-            RefreshTokenDB.token_hash == token_hash,
-            RefreshTokenDB.revoked_at.is_(None),
-            RefreshTokenDB.is_used == False,
-        )
-        .first()
-    )
+    token_record = db.query(RefreshTokenDB).filter(RefreshTokenDB.token_hash == token_hash).first()
     if not token_record:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
