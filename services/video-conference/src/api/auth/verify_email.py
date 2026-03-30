@@ -19,6 +19,6 @@ def verify_email_api(token: str, db: Session = Depends(get_db)):
     Redirects to success URL if configured, else returns JSON.
     """
     result = verify_email(token, db)
-    if config.EMAIL_VERIFICATION_SUCCESS_URL:
-        return RedirectResponse(url=config.EMAIL_VERIFICATION_SUCCESS_URL)
+    # if config.EMAIL_VERIFICATION_SUCCESS_URL:
+        # return RedirectResponse(url=config.EMAIL_VERIFICATION_SUCCESS_URL)
     return result

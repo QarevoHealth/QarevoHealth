@@ -180,15 +180,13 @@ class ResetPasswordRequest(BaseModel):
     """Request to reset password with token from email link."""
 
     token: str = Field(..., min_length=1, description="Reset token from email link")
-    new_password: str = Field(..., min_length=12, max_length=128, description="New password")
-    confirm_password: str = Field(..., min_length=12, max_length=128, description="Confirm new password")
+    new_password: str = Field(..., min_length=8, max_length=128, description="New password")
 
-    @field_validator("new_password", "confirm_password")
+    @field_validator("new_password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        """Password: 12-128 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char."""
-        if len(v) < 12 or len(v) > 128:
-            raise ValueError("Password must be 12-128 characters")
+        if len(v) < 8 or len(v) > 128:
+            raise ValueError("Password must be 8-128 characters")
         if not re.search(r"[A-Z]", v):
             raise ValueError("Password must contain at least one uppercase letter")
         if not re.search(r"[a-z]", v):
