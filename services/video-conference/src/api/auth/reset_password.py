@@ -15,7 +15,7 @@ def reset_password_api(body: ResetPasswordRequest, db: Session = Depends(get_db)
     """
     Reset password using token from email link.
 
-    User lands on reset screen (from link), enters new password (min 8 chars).
+    User lands on reset screen (from link), enters new password + confirm.
     Token must be valid, not expired, not used, not invalidated.
     """
     result = reset_password(body.token, body.new_password, db)

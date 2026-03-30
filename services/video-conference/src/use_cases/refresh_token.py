@@ -39,6 +39,7 @@ def execute(
     user_agent: str | None = None,
 ) -> dict:
     """
+<<<<<<< HEAD
     Access token renewal with refresh token rotation.
 
     Flow:
@@ -48,6 +49,9 @@ def execute(
     4. Create new access token + new refresh token
     5. Return both for session continuity
 
+=======
+    Validate refresh token, mark as used, create new access + refresh tokens.
+>>>>>>> 8e36e99d9abb91d1989472564d615f2633b0a8c4
     Returns access_token, refresh_token, expires_in.
     """
     token_hash = _hash_token(refresh_token)
