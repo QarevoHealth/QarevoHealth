@@ -1,61 +1,6 @@
 # =========================
 # Python
 # =========================
-# ----------------------------
-# OS / Editor
-# ----------------------------
-.DS_Store
-.DS_Store?
-._*
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.project
-.pydevproject
-.settings/
-
-# ----------------------------
-# Terraform
-# ----------------------------
-.terraform/
-**/.terraform/*
-*.tfstate
-*.tfstate.*
-.terraform.lock.hcl
-crash.log
-crash.*.log
-terraform.rc
-.terraformrc
-
-# Avoid committing real tfvars
-*.tfvars
-*.tfvars.json
-
-# Allow example tfvars
-!*.tfvars.example
-!*.tfvars.json.example
-
-# ----------------------------
-# Node / Next.js
-# ----------------------------
-node_modules/
-.next/
-out/
-dist/
-coverage/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# ----------------------------
-# Python
-# ----------------------------
 __pycache__/
 *.py[cod]
 *$py.class
@@ -63,8 +8,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-
-# Packaging / build
+dist/
 downloads/
 eggs/
 .eggs/
@@ -96,6 +40,28 @@ ENV/
 # Keep .env.example - it has no secrets
 
 # =========================
+# IDE / Editor
+# =========================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
 # Database
 # =========================
 *.db
@@ -106,27 +72,6 @@ video_conference.db
 # =========================
 # Logs & temp
 # =========================
-# Tooling caches
-pip-wheel-metadata/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.dmypy.json
-dmypy.json
-
-# Coverage
-.coverage
-.coverage.*
-htmlcov/
-coverage.xml
-*.cover
-.hypothesis/
-.tox/
-.nox/
-
-# ----------------------------
-# Logs & temp
-# ----------------------------
 *.log
 logs/
 tmp/
@@ -135,6 +80,47 @@ temp/
 .cache/
 
 # =========================
+# Testing & coverage
+# =========================
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# =========================
 # Jupyter
 # =========================
 .ipynb_checkpoints/
+
+# =========================
+# mypy
+# =========================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# =========================
+# Ruff / Linters
+# =========================
+.ruff_cache/
+
+# =========================
+# AWS / Terraform (if used)
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# =========================
+# Node (if frontend in monorepo)
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

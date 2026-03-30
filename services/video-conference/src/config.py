@@ -38,7 +38,7 @@ class Config:
     API_PREFIX: str = os.getenv("API_PREFIX", "/api/v1")
     
     # Application
-    APP_NAME: str = os.getenv("APP_NAME", "Video Conference Service")
+    APP_NAME: str = os.getenv("APP_NAME", "Qarevo Health Video Conference Service")
     APP_VERSION: str = os.getenv("APP_VERSION", "1.0.0")
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
 

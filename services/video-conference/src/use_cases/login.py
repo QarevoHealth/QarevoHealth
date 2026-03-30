@@ -1,0 +1,75 @@
+"""Login use case - verify credentials, create tokens, store refresh token."""
+
+from datetime import datetime, timedelta, timezone
+
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
+from src.config import config
+from src.constants.user import CONFIG_USER
+from src.models import RefreshTokenDB, UserDB
+from src.schemas.auth import LoginRequest
+from src.services.auth_service import (
+    create_access_token,
+    create_refresh_token,
+    verify_password,
+)
+
+
+def execute(
+    request: LoginRequest,
+    db: Session,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> dict:
+    """
+    Login: verify email+password, create access + refresh tokens, store refresh token in DB.
+    Returns access_token, refresh_token, expires_in.
+    """
+    email_lower = request.email.lower().strip()
+    user = db.query(UserDB).filter(UserDB.email.ilike(email_lower)).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not user.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(request.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if user.status != CONFIG_USER.STATUS.ACTIVE:
+        raise HTTPException(
+            status_code=403,
+            detail="Account not active. Please verify your email first.",
+        )
+
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=403,
+            detail="Email not verified. Please check your inbox for the verification link.",
+        )
+
+    # Create tokens
+    access_token = create_access_token(user.id, user.email, user.role)
+    raw_refresh, token_hash = create_refresh_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
+
+    # Store refresh token in DB
+    refresh_record = RefreshTokenDB(
+        user_id=user.id,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        ip_address=ip_address,
+        user_agent=user_agent,
+    )
+    db.add(refresh_record)
+    db.commit()
+
+    expires_in_seconds = config.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+    return {
+        "access_token": access_token,
+        "refresh_token": raw_refresh,
+        "token_type": "bearer",
+        "expires_in": expires_in_seconds,
+    }
