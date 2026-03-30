@@ -1,20 +1,133 @@
-# Environment files (never commit secrets)
+# ----------------------------
+# OS / Editor
+# ----------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ----------------------------
+# Terraform
+# ----------------------------
+.terraform/
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+crash.log
+crash.*.log
+terraform.rc
+.terraformrc
+
+# Avoid committing real tfvars
+*.tfvars
+*.tfvars.json
+
+# Allow example tfvars
+!*.tfvars.example
+!*.tfvars.json.example
+
+# ----------------------------
+# Environment / secrets
+# ----------------------------
 .env
 .env.*
+.env.local
+.env.*.local
 !.env.example
-!.env.sample
 
-# Python
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Node
+# ----------------------------
+# Node / Next.js
+# ----------------------------
 node_modules/
 .next/
+out/
 dist/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# OS
-.DS_Store
+# ----------------------------
+# Python
+# ----------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+.env/
+
+# Packaging / build
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Tooling caches
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# ----------------------------
+# Logs & temp
+# ----------------------------
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+.cache/
+
+# ----------------------------
+# Database
+# ----------------------------
+*.db
+*.sqlite
+*.sqlite3
+video_conference.db
+
+# ----------------------------
+# Jupyter
+# ----------------------------
+.ipynb_checkpoints/

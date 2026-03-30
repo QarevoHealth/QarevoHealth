@@ -1,0 +1,100 @@
+"""Auth request/response schemas with validation."""
+
+import re
+from datetime import date
+from enum import Enum
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+
+
+class Gender(str, Enum):
+    """Gender enum - uppercase values."""
+
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+    OTHER = "OTHER"
+    PREFER_NOT_TO_SAY = "PREFER_NOT_TO_SAY"
+
+
+class ConsentsInput(BaseModel):
+    """Consents: terms_privacy, telehealth mandatory; marketing optional (default False)."""
+
+    terms_privacy: bool = Field(..., description="Terms of Service & Privacy Policy - mandatory, must be True")
+    telehealth: bool = Field(..., description="Telehealth consent - mandatory, must be True")
+    marketing: bool = Field(False, description="Marketing communications - optional, default False")
+
+    @model_validator(mode="after")
+    def validate_mandatory_consents(self):
+        """Terms_privacy and telehealth must both be True."""
+        if not self.terms_privacy:
+            raise ValueError("Terms of Service and Privacy Policy must be accepted")
+        if not self.telehealth:
+            raise ValueError("Telehealth consent must be accepted")
+        return self
+
+
+class RegisterRequest(BaseModel):
+    """Registration request with validation."""
+
+    name: str = Field(..., min_length=1, max_length=255, description="Full name")
+    email: EmailStr = Field(..., description="Email address")
+    password: str = Field(..., min_length=8, max_length=128, description="Password")
+    phone: str = Field(..., min_length=1, max_length=20, description="Phone number")
+    country_code: str = Field(..., min_length=1, max_length=5, description="Country code (e.g. +49)")
+    date_of_birth: date = Field(..., description="Date of birth")
+    gender: str = Field(..., description="Gender: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+    consents: ConsentsInput = Field(..., description="Consent flags (terms_privacy, telehealth mandatory)")
+
+    @field_validator("name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Name cannot be empty")
+        return v.strip()
+
+    @field_validator("gender")
+    @classmethod
+    def gender_valid(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Gender cannot be empty")
+        allowed = {g.value for g in Gender}
+        if v.strip().upper() not in allowed:
+            raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+        return v.strip().upper()
+
+    @field_validator("country_code")
+    @classmethod
+    def country_code_valid(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Country code cannot be empty")
+        return v.strip()
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        """Normalize email to lowercase for consistent storage and duplicate checks."""
+        return v.lower().strip() if v else v
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Password: 8-128 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char."""
+        if len(v) < 8 or len(v) > 128:
+            raise ValueError("Password must be 8-128 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
+
+class RegisterResponse(BaseModel):
+    """Response after successful registration."""
+
+    user_id: UUID = Field(..., description="Created user UUID")
+    message: str = Field("Registration successful.", description="Status message")
