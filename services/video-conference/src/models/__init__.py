@@ -31,6 +31,9 @@ from src.models.tenant import TenantDB
 from src.models.user import UserDB
 from src.models.user_consent import ConsentType, UserConsentDB
 from src.models.user_identity import AuthProvider, UserIdentityDB
+from src.models.token_constants import AttemptType, TokenType
+from src.models.user_token_attempt import UserTokenAttemptDB
+from src.models.user_token_lockout import UserTokenLockoutDB
 from src.models.video_session import VideoSessionDB
 from src.models.video_session_artifact import VideoSessionArtifactDB
 from src.models.video_session_attendee import VideoSessionAttendeeDB
@@ -64,6 +67,10 @@ __all__ = [
     "UserDB",
     "UserConsentDB",
     "UserIdentityDB",
+    "UserTokenAttemptDB",
+    "UserTokenLockoutDB",
+    "AttemptType",
+    "TokenType",
     "VideoSessionDB",
     "VideoSessionArtifactDB",
     "VideoSessionAttendeeDB",
