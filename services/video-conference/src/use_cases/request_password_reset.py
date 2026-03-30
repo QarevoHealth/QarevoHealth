@@ -55,7 +55,7 @@ def execute(email: str, db: Session) -> dict:
     subject, html_body, text_body = load_email_template(
         "password_reset",
         context={
-            "user_name": user.full_name or "User",
+            "user_name": user.first_name or "User",
             "reset_link": reset_link,
             "expiry_minutes": config.PASSWORD_RESET_EXPIRY_MINUTES,
         },

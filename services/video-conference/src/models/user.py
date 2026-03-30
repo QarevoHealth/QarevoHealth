@@ -16,11 +16,14 @@ class UserDB(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    full_name = Column(String, nullable=False)
+    first_name = Column(String, nullable=False)
+    middle_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True)
     role = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
     email_verified = Column(Boolean, nullable=False, default=False)
+    country_code = Column(String(10), nullable=True)
     phone = Column(String, nullable=True)
     password_hash = Column(Text, nullable=True)
     status = Column(String, nullable=True)

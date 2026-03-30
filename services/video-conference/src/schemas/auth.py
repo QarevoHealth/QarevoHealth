@@ -37,7 +37,9 @@ class ConsentsInput(BaseModel):
 class RegisterRequest(BaseModel):
     """Registration request with validation."""
 
-    name: str = Field(..., min_length=1, max_length=255, description="Full name")
+    first_name: str = Field(..., min_length=1, max_length=100, description="First name")
+    middle_name: str | None = Field(None, max_length=100, description="Middle name (optional)")
+    last_name: str = Field(..., min_length=1, max_length=100, description="Last name")
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=8, max_length=128, description="Password")
     phone: str = Field(..., min_length=1, max_length=20, description="Phone number")
@@ -46,12 +48,17 @@ class RegisterRequest(BaseModel):
     gender: str = Field(..., description="Gender: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
     consents: ConsentsInput = Field(..., description="Consent flags (terms_privacy, telehealth mandatory)")
 
-    @field_validator("name")
+    @field_validator("first_name", "last_name")
     @classmethod
     def name_not_empty(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("Name cannot be empty")
         return v.strip()
+
+    @field_validator("middle_name")
+    @classmethod
+    def middle_name_strip(cls, v: str | None) -> str | None:
+        return v.strip() if v and v.strip() else None
 
     @field_validator("gender")
     @classmethod
@@ -63,12 +70,26 @@ class RegisterRequest(BaseModel):
             raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
         return v.strip().upper()
 
+    @field_validator("phone")
+    @classmethod
+    def phone_numeric(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Phone number cannot be empty")
+        if not stripped.isdigit():
+            raise ValueError("Phone number must contain digits only")
+        return stripped
+
     @field_validator("country_code")
     @classmethod
     def country_code_valid(cls, v: str) -> str:
-        if not v or not v.strip():
+        stripped = v.strip()
+        if not stripped:
             raise ValueError("Country code cannot be empty")
-        return v.strip()
+        digits = stripped.lstrip("+")
+        if not digits.isdigit():
+            raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
+        return stripped
 
     @field_validator("email")
     @classmethod
@@ -196,13 +217,6 @@ class ResetPasswordRequest(BaseModel):
         if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?]", v):
             raise ValueError("Password must contain at least one special character")
         return v
-
-    @model_validator(mode="after")
-    def passwords_match(self):
-        """New password and confirm must match."""
-        if self.new_password != self.confirm_password:
-            raise ValueError("Passwords do not match")
-        return self
 
 
 class ResetPasswordResponse(BaseModel):
