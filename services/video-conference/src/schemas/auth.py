@@ -240,3 +240,28 @@ class ResendPasswordResetResponse(BaseModel):
     """Response after resending password reset email."""
 
     message: str = Field("Password reset email sent.", description="Status message")
+
+
+class VerifyEmailCodeRequest(BaseModel):
+    """Request to verify email using a 6-digit OTP code."""
+
+    email: EmailStr = Field(..., description="Registered email address")
+    code: str = Field(..., min_length=6, max_length=6, description="6-digit verification code")
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower().strip() if v else v
+
+    @field_validator("code")
+    @classmethod
+    def code_digits_only(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("Verification code must be 6 digits")
+        return v
+
+
+class VerifyEmailCodeResponse(BaseModel):
+    """Response after successful OTP email verification."""
+
+    message: str = Field("Email verified successfully.", description="Status message")

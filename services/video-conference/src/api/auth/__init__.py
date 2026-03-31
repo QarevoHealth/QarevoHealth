@@ -1,4 +1,4 @@
-"""Auth API routes - register, verify-email, resend-verification, login, refresh, logout, forgot-password, reset-password, resend-password-reset."""
+"""Auth API routes - register, verify-email, verify-email-code, resend-verification, login, refresh, logout, forgot-password, reset-password, resend-password-reset."""
 
 from src.api.auth.forgot_password import router as forgot_password_router
 from src.api.auth.login import router as login_router
@@ -9,6 +9,7 @@ from src.api.auth.resend_password_reset import router as resend_password_reset_r
 from src.api.auth.resend_verification_email import router as resend_verification_router
 from src.api.auth.reset_password import router as reset_password_router
 from src.api.auth.verify_email import router as verify_email_router
+from src.api.auth.verify_email_code import router as verify_email_code_router
 
 __all__ = [
     "forgot_password_router",
@@ -20,4 +21,5 @@ __all__ = [
     "resend_verification_router",
     "reset_password_router",
     "verify_email_router",
+    "verify_email_code_router",
 ]
