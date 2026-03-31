@@ -2,10 +2,21 @@ Welcome to Qarevo Health!
 
 Hi {{user_name}},
 
-Thank you for registering. Please verify your email address by visiting:
-{{verification_link}}
+Thank you for registering. Please verify your email using one of the two options below:
 
-This link expires in {{expiry_hours}} hours.
+---
+Option 1 — Click the verification link:
+{{verification_link}}
+(Expires in {{expiry_hours}} hours)
+
+---
+Option 2 — Enter this verification code in the app:
+
+  {{otp_code}}
+
+(Expires in {{otp_expiry_minutes}} minutes)
+
+---
 
 If you did not create an account, you can ignore this email.
 

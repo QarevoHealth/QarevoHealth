@@ -1,10 +1,23 @@
 <html>
-<body>
+<body style="font-family: Arial, sans-serif; color: #333;">
     <h2>Welcome to Qarevo Health!</h2>
     <p>Hi {{user_name}},</p>
-    <p>Thank you for registering. Please verify your email address by clicking the link below:</p>
-    <p><a href="{{verification_link}}">Verify my email</a></p>
-    <p>This link expires in {{expiry_hours}} hours.</p>
+    <p>Thank you for registering. Please verify your email address using one of the two options below:</p>
+
+    <hr style="margin: 24px 0;">
+
+    <h3>Option 1 — Click the verification link</h3>
+    <p><a href="{{verification_link}}" style="color: #0066cc;">Verify my email</a></p>
+    <p style="color: #888; font-size: 13px;">This link expires in {{expiry_hours}} hours.</p>
+
+    <hr style="margin: 24px 0;">
+
+    <h3>Option 2 — Enter this verification code</h3>
+    <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #222;">{{otp_code}}</p>
+    <p style="color: #888; font-size: 13px;">This code expires in {{otp_expiry_minutes}} minutes.</p>
+
+    <hr style="margin: 24px 0;">
+
     <p>If you did not create an account, you can ignore this email.</p>
     <br>
     <p>Best regards,<br>The Qarevo Health Team</p>
