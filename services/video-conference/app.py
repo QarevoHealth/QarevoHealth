@@ -9,6 +9,7 @@ from src.api.auth import (
     logout_router,
     refresh_token_router,
     register_router,
+    register_doctor_router,
     resend_password_reset_router,
     resend_verification_router,
     reset_password_router,
@@ -30,6 +31,7 @@ app = FastAPI(
 
 # Mount routes
 app.include_router(register_router)
+app.include_router(register_doctor_router)
 app.include_router(verify_email_router)
 app.include_router(verify_email_code_router)
 app.include_router(me_router)

@@ -160,6 +160,90 @@ class LogoutResponse(BaseModel):
     message: str = Field("Logged out successfully.", description="Status message")
 
 
+class DoctorRegisterRequest(BaseModel):
+    """Doctor registration request — creates a PROVIDER account."""
+
+    first_name: str = Field(..., min_length=1, max_length=100)
+    middle_name: str | None = Field(None, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr = Field(..., description="Email address")
+    password: str = Field(..., min_length=8, max_length=128)
+    phone: str = Field(..., min_length=1, max_length=20, description="Digits only")
+    country_code: str = Field(..., min_length=1, max_length=5, description="e.g. +1")
+    date_of_birth: date = Field(...)
+    gender: str = Field(..., description="MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+    specialty: str | None = Field(None, max_length=200, description="Medical specialty (optional at registration)")
+    experience_years: int | None = Field(None, ge=0, le=80, description="Years of experience (optional)")
+    license_number: str | None = Field(None, max_length=100, description="Medical license number (optional at registration)")
+    is_independent: bool = Field(False, description="Independent practitioner?")
+    consents: ConsentsInput = Field(..., description="Terms + Telehealth mandatory")
+
+    @field_validator("first_name", "last_name")
+    @classmethod
+    def name_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Name cannot be empty")
+        return v.strip()
+
+    @field_validator("middle_name")
+    @classmethod
+    def middle_name_strip(cls, v: str | None) -> str | None:
+        return v.strip() if v and v.strip() else None
+
+    @field_validator("gender")
+    @classmethod
+    def gender_valid(cls, v: str) -> str:
+        allowed = {g.value for g in Gender}
+        if v.strip().upper() not in allowed:
+            raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+        return v.strip().upper()
+
+    @field_validator("phone")
+    @classmethod
+    def phone_numeric(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped.isdigit():
+            raise ValueError("Phone number must contain digits only")
+        return stripped
+
+    @field_validator("country_code")
+    @classmethod
+    def country_code_valid(cls, v: str) -> str:
+        stripped = v.strip()
+        digits = stripped.lstrip("+")
+        if not digits.isdigit():
+            raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
+        return stripped
+
+    @field_validator("email")
+    @classmethod
+    def email_lowercase(cls, v: str) -> str:
+        return v.lower().strip() if v else v
+
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 8 or len(v) > 128:
+            raise ValueError("Password must be 8-128 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?]", v):
+            raise ValueError("Password must contain at least one special character")
+        return v
+
+
+class DoctorRegisterResponse(BaseModel):
+    """Response after successful doctor registration."""
+
+    user_id: UUID = Field(..., description="Created user UUID")
+    provider_id: UUID = Field(..., description="Created provider profile UUID")
+    message: str = Field("Doctor registration successful. Please verify your email.", description="Status message")
+
+
 class ResendVerificationRequest(BaseModel):
     """Request to resend verification email."""
 
