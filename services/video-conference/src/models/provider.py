@@ -20,8 +20,16 @@ class ProviderDB(Base):
     specialty = Column(String, nullable=True)
     experience_years = Column(Integer, nullable=True)
     license_number = Column(String, nullable=True)
+    license_verified = Column(Boolean, nullable=False, default=False)
     is_independent = Column(Boolean, nullable=True, default=False)
+    address_line1 = Column(String, nullable=True)
+    address_line2 = Column(String, nullable=True)
+    address_city = Column(String, nullable=True)
+    address_state = Column(String, nullable=True)
+    address_country = Column(String, nullable=True)
+    address_zip = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     user = relationship("UserDB", back_populates="provider")

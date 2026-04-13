@@ -2,7 +2,7 @@
 
 import uuid
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -14,6 +14,9 @@ class UserDB(Base):
     """User account (auth, identity)."""
 
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_phone_unique", "phone", unique=True, postgresql_where=~(Column("phone").is_(None))),
+    )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     first_name = Column(String, nullable=False)
@@ -23,6 +26,7 @@ class UserDB(Base):
     role = Column(String, nullable=True)
     email = Column(String, nullable=True, index=True)
     email_verified = Column(Boolean, nullable=False, default=False)
+    phone_verified = Column(Boolean, nullable=False, default=False)
     country_code = Column(String(10), nullable=True)
     phone = Column(String, nullable=True)
     password_hash = Column(Text, nullable=True)
