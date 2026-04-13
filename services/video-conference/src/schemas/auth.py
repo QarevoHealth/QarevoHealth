@@ -1,41 +1,16 @@
-"""Auth request/response schemas with validation."""
+"""Auth request/response schemas — shared for all roles: login, logout, refresh, verify, reset, patient register."""
 
 import re
 from datetime import date
-from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-
-class Gender(str, Enum):
-    """Gender enum - uppercase values."""
-
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-    OTHER = "OTHER"
-    PREFER_NOT_TO_SAY = "PREFER_NOT_TO_SAY"
-
-
-class ConsentsInput(BaseModel):
-    """Consents: terms_privacy, telehealth mandatory; marketing optional (default False)."""
-
-    terms_privacy: bool = Field(..., description="Terms of Service & Privacy Policy - mandatory, must be True")
-    telehealth: bool = Field(..., description="Telehealth consent - mandatory, must be True")
-    marketing: bool = Field(False, description="Marketing communications - optional, default False")
-
-    @model_validator(mode="after")
-    def validate_mandatory_consents(self):
-        """Terms_privacy and telehealth must both be True."""
-        if not self.terms_privacy:
-            raise ValueError("Terms of Service and Privacy Policy must be accepted")
-        if not self.telehealth:
-            raise ValueError("Telehealth consent must be accepted")
-        return self
+from src.schemas.common import ConsentsInput, Gender
 
 
 class RegisterRequest(BaseModel):
-    """Registration request with validation."""
+    """Patient registration request with validation."""
 
     first_name: str = Field(..., min_length=1, max_length=100, description="First name")
     middle_name: str | None = Field(None, max_length=100, description="Middle name (optional)")
@@ -94,13 +69,11 @@ class RegisterRequest(BaseModel):
     @field_validator("email")
     @classmethod
     def email_lowercase(cls, v: str) -> str:
-        """Normalize email to lowercase for consistent storage and duplicate checks."""
         return v.lower().strip() if v else v
 
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        """Password: 8-128 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char."""
         if len(v) < 8 or len(v) > 128:
             raise ValueError("Password must be 8-128 characters")
         if not re.search(r"[A-Z]", v):
@@ -115,7 +88,7 @@ class RegisterRequest(BaseModel):
 
 
 class RegisterResponse(BaseModel):
-    """Response after successful registration."""
+    """Response after successful patient registration."""
 
     user_id: UUID = Field(..., description="Created user UUID")
     message: str = Field("Registration successful.", description="Status message")
@@ -158,90 +131,6 @@ class LogoutResponse(BaseModel):
     """Response after logout."""
 
     message: str = Field("Logged out successfully.", description="Status message")
-
-
-class DoctorRegisterRequest(BaseModel):
-    """Doctor registration request — creates a PROVIDER account."""
-
-    first_name: str = Field(..., min_length=1, max_length=100)
-    middle_name: str | None = Field(None, max_length=100)
-    last_name: str = Field(..., min_length=1, max_length=100)
-    email: EmailStr = Field(..., description="Email address")
-    password: str = Field(..., min_length=8, max_length=128)
-    phone: str = Field(..., min_length=1, max_length=20, description="Digits only")
-    country_code: str = Field(..., min_length=1, max_length=5, description="e.g. +1")
-    date_of_birth: date = Field(...)
-    gender: str = Field(..., description="MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
-    specialty: str | None = Field(None, max_length=200, description="Medical specialty (optional at registration)")
-    experience_years: int | None = Field(None, ge=0, le=80, description="Years of experience (optional)")
-    license_number: str | None = Field(None, max_length=100, description="Medical license number (optional at registration)")
-    is_independent: bool = Field(False, description="Independent practitioner?")
-    consents: ConsentsInput = Field(..., description="Terms + Telehealth mandatory")
-
-    @field_validator("first_name", "last_name")
-    @classmethod
-    def name_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Name cannot be empty")
-        return v.strip()
-
-    @field_validator("middle_name")
-    @classmethod
-    def middle_name_strip(cls, v: str | None) -> str | None:
-        return v.strip() if v and v.strip() else None
-
-    @field_validator("gender")
-    @classmethod
-    def gender_valid(cls, v: str) -> str:
-        allowed = {g.value for g in Gender}
-        if v.strip().upper() not in allowed:
-            raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
-        return v.strip().upper()
-
-    @field_validator("phone")
-    @classmethod
-    def phone_numeric(cls, v: str) -> str:
-        stripped = v.strip()
-        if not stripped.isdigit():
-            raise ValueError("Phone number must contain digits only")
-        return stripped
-
-    @field_validator("country_code")
-    @classmethod
-    def country_code_valid(cls, v: str) -> str:
-        stripped = v.strip()
-        digits = stripped.lstrip("+")
-        if not digits.isdigit():
-            raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
-        return stripped
-
-    @field_validator("email")
-    @classmethod
-    def email_lowercase(cls, v: str) -> str:
-        return v.lower().strip() if v else v
-
-    @field_validator("password")
-    @classmethod
-    def password_strength(cls, v: str) -> str:
-        if len(v) < 8 or len(v) > 128:
-            raise ValueError("Password must be 8-128 characters")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one number")
-        if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?]", v):
-            raise ValueError("Password must contain at least one special character")
-        return v
-
-
-class DoctorRegisterResponse(BaseModel):
-    """Response after successful doctor registration."""
-
-    user_id: UUID = Field(..., description="Created user UUID")
-    provider_id: UUID = Field(..., description="Created provider profile UUID")
-    message: str = Field("Doctor registration successful. Please verify your email.", description="Status message")
 
 
 class ResendVerificationRequest(BaseModel):
