@@ -18,6 +18,7 @@ from src.use_cases.send_verification_email import execute as send_verification_e
 def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None = None) -> dict:
     """Register a new doctor (provider) with consents. Sends email verification on success."""
     email_lower = request.email.lower().strip()
+    username_lower = request.username.strip().lower() if request.username else None
 
     existing = db.query(UserDB).filter(UserDB.email.ilike(email_lower)).first()
     if existing:
@@ -32,6 +33,21 @@ def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None 
             commit=True,
         )
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    if username_lower:
+        existing_username = db.query(ProviderDB).filter(ProviderDB.username == username_lower).first()
+        if existing_username:
+            write_audit_log(
+                db,
+                event_type=AuditEventType.REGISTER_FAILURE,
+                event_category=AuditEventCategory.AUTH,
+                success=False,
+                ip_address=ip_address,
+                failure_reason=FailureReason.USERNAME_ALREADY_TAKEN,
+                extra_data={"username": username_lower, "role": CONFIG_USER.ROLE.PROVIDER},
+                commit=True,
+            )
+            raise HTTPException(status_code=400, detail="Username already taken")
 
     try:
         user = UserDB(
@@ -49,10 +65,11 @@ def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None 
             phone_verified=False,
         )
         db.add(user)
-        db.flush()  # needed to get user.id for provider FK
+        db.flush()
 
         provider = ProviderDB(
             user_id=user.id,
+            username=username_lower,
             specialty=request.specialty,
             experience_years=request.experience_years,
             license_number=request.license_number,

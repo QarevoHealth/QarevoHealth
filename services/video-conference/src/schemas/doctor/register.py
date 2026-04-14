@@ -1,4 +1,4 @@
-"""Doctor request/response schemas with validation."""
+"""Doctor registration request/response schemas."""
 
 import re
 from datetime import date
@@ -15,6 +15,7 @@ class DoctorRegisterRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     middle_name: str | None = Field(None, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
+    username: str | None = Field(None, min_length=3, max_length=100, description="Optional unique username for doctor login (letters, numbers, dots, underscores, hyphens only)")
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=8, max_length=128)
     phone: str = Field(..., min_length=1, max_length=20, description="Digits only")
@@ -32,6 +33,18 @@ class DoctorRegisterRequest(BaseModel):
     address_country: str | None = Field(None, max_length=100, description="Country (optional)")
     address_zip: str | None = Field(None, max_length=20, description="Zip / Postal code (optional)")
     consents: ConsentsInput = Field(..., description="Terms + Telehealth mandatory")
+
+    @field_validator("username")
+    @classmethod
+    def username_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        stripped = v.strip().lower()
+        if not stripped:
+            return None
+        if not re.match(r"^[a-z0-9._-]+$", stripped):
+            raise ValueError("Username may only contain letters, numbers, dots, underscores, and hyphens")
+        return stripped
 
     @field_validator("first_name", "last_name")
     @classmethod
