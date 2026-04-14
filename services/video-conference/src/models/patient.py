@@ -21,6 +21,7 @@ class PatientDB(Base):
     gender = Column(String, nullable=True)
     external_patient_id = Column(String, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     user = relationship("UserDB", back_populates="patient")
