@@ -1,8 +1,10 @@
-"""Doctor login use case — username + password, email must be verified."""
+"""Doctor login use case — username/email/phone + password, email must be verified."""
 
+import re
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from src.config import config
@@ -26,13 +28,32 @@ def execute(
     user_agent: str | None = None,
 ) -> dict:
     """
-    Doctor login: verify username + password, check email_verified, return tokens.
-    Phone verification is NOT required.
+    Doctor login: verify username/email/phone + password, check email_verified, return tokens.
+    If login is via phone, phone_verified is required.
     """
+    identifier = request.identifier
+    is_email = "@" in identifier
+    is_phone = identifier.startswith("+") and identifier[1:].isdigit()
+
+    # Match phone in canonical +<country_code><phone> style.
+    phone_compact = re.sub(r"[\s\-()]", "", identifier) if is_phone else None
+    user_phone_compact = func.replace(
+        func.replace(func.replace(func.concat(UserDB.country_code, UserDB.phone), " ", ""), "-", ""),
+        "(",
+        "",
+    )
+    user_phone_compact = func.replace(user_phone_compact, ")", "")
+
     user = (
         db.query(UserDB)
         .join(ProviderDB, ProviderDB.user_id == UserDB.id)
-        .filter(ProviderDB.username == request.username)
+        .filter(
+            or_(
+                and_(is_email, UserDB.email.ilike(identifier)),
+                and_(is_phone, user_phone_compact == phone_compact),
+                and_(not is_email and not is_phone, ProviderDB.username == identifier.lower()),
+            )
+        )
         .first()
     )
 
@@ -45,10 +66,10 @@ def execute(
             ip_address=ip_address,
             user_agent=user_agent,
             failure_reason=FailureReason.USER_NOT_FOUND,
-            extra_data={"username": request.username},
+            extra_data={"identifier": identifier},
             commit=True,
         )
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not verify_password(request.password, user.password_hash):
         write_audit_log(
@@ -62,7 +83,7 @@ def execute(
             failure_reason=FailureReason.INVALID_PASSWORD,
             commit=True,
         )
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user.email_verified:
         write_audit_log(
@@ -79,6 +100,23 @@ def execute(
         raise HTTPException(
             status_code=403,
             detail="Email not verified. Please check your inbox for the verification link.",
+        )
+
+    if is_phone and not user.phone_verified:
+        write_audit_log(
+            db,
+            event_type=AuditEventType.LOGIN_FAILURE,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.PHONE_NOT_VERIFIED,
+            commit=True,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Phone not verified. Please verify your phone number before logging in with phone.",
         )
 
     if user.status != CONFIG_USER.STATUS.ACTIVE:
