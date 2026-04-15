@@ -1,41 +1,16 @@
-"""Auth request/response schemas with validation."""
+"""Auth request/response schemas — shared for all roles: login, logout, refresh, verify, reset, patient register."""
 
 import re
 from datetime import date
-from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-
-class Gender(str, Enum):
-    """Gender enum - uppercase values."""
-
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-    OTHER = "OTHER"
-    PREFER_NOT_TO_SAY = "PREFER_NOT_TO_SAY"
-
-
-class ConsentsInput(BaseModel):
-    """Consents: terms_privacy, telehealth mandatory; marketing optional (default False)."""
-
-    terms_privacy: bool = Field(..., description="Terms of Service & Privacy Policy - mandatory, must be True")
-    telehealth: bool = Field(..., description="Telehealth consent - mandatory, must be True")
-    marketing: bool = Field(False, description="Marketing communications - optional, default False")
-
-    @model_validator(mode="after")
-    def validate_mandatory_consents(self):
-        """Terms_privacy and telehealth must both be True."""
-        if not self.terms_privacy:
-            raise ValueError("Terms of Service and Privacy Policy must be accepted")
-        if not self.telehealth:
-            raise ValueError("Telehealth consent must be accepted")
-        return self
+from src.schemas.common import ConsentsInput, Gender
 
 
 class RegisterRequest(BaseModel):
-    """Registration request with validation."""
+    """Patient registration request with validation."""
 
     first_name: str = Field(..., min_length=1, max_length=100, description="First name")
     middle_name: str | None = Field(None, max_length=100, description="Middle name (optional)")
@@ -94,13 +69,11 @@ class RegisterRequest(BaseModel):
     @field_validator("email")
     @classmethod
     def email_lowercase(cls, v: str) -> str:
-        """Normalize email to lowercase for consistent storage and duplicate checks."""
         return v.lower().strip() if v else v
 
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
-        """Password: 8-128 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special char."""
         if len(v) < 8 or len(v) > 128:
             raise ValueError("Password must be 8-128 characters")
         if not re.search(r"[A-Z]", v):
@@ -115,7 +88,7 @@ class RegisterRequest(BaseModel):
 
 
 class RegisterResponse(BaseModel):
-    """Response after successful registration."""
+    """Response after successful patient registration."""
 
     user_id: UUID = Field(..., description="Created user UUID")
     message: str = Field("Registration successful.", description="Status message")

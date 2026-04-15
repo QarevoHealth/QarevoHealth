@@ -9,7 +9,7 @@ from src.constants.failure_reasons import FailureReason
 from src.constants.user import CONFIG_USER
 from src.models import AuditEventCategory, AuditEventType, ConsentType, UserConsentDB, UserDB
 from src.models.provider import ProviderDB
-from src.schemas.auth import DoctorRegisterRequest
+from src.schemas.doctor import DoctorRegisterRequest
 from src.services.audit_service import write_audit_log
 from src.services.auth_service import hash_password
 from src.use_cases.send_verification_email import execute as send_verification_email
@@ -46,9 +46,10 @@ def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None 
             password_hash=hash_password(request.password),
             status=CONFIG_USER.STATUS.PENDING_VERIFICATION,
             email_verified=False,
+            phone_verified=False,
         )
         db.add(user)
-        db.flush()
+        db.flush()  # needed to get user.id for provider FK
 
         provider = ProviderDB(
             user_id=user.id,
@@ -56,9 +57,14 @@ def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None 
             experience_years=request.experience_years,
             license_number=request.license_number,
             is_independent=request.is_independent,
+            address_line1=request.address_line1,
+            address_line2=request.address_line2,
+            address_city=request.address_city,
+            address_state=request.address_state,
+            address_country=request.address_country,
+            address_zip=request.address_zip,
         )
         db.add(provider)
-        db.flush()
 
         now = datetime.now(timezone.utc)
         consent_map = {

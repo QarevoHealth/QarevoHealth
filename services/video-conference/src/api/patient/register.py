@@ -1,4 +1,4 @@
-"""Register API - patient registration with validation (under auth)."""
+"""Patient registration API route."""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -8,7 +8,7 @@ from src.dependencies.client_info import ClientInfo, get_client_info
 from src.schemas.auth import RegisterRequest, RegisterResponse
 from src.use_cases.register_user import execute as register_user
 
-router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+router = APIRouter(prefix="/api/v1/patient", tags=["patient"])
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=201)
