@@ -65,11 +65,10 @@ def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None 
             phone_verified=False,
         )
         db.add(user)
-        db.flush()
+        db.flush()  # needed to get user.id for provider FK
 
         provider = ProviderDB(
             user_id=user.id,
-            username=username_lower,
             specialty=request.specialty,
             experience_years=request.experience_years,
             license_number=request.license_number,
