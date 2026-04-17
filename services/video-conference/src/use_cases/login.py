@@ -1,4 +1,4 @@
-"""Login use case - verify credentials, create tokens, store refresh token."""
+"""Patient login use case - verify credentials and issue tokens."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -25,7 +25,7 @@ def execute(
     user_agent: str | None = None,
 ) -> dict:
     """
-    Login: verify email+password, create access + refresh tokens, store refresh token in DB.
+    Patient login: verify email+password, create access + refresh tokens, store refresh token in DB.
     Returns access_token, refresh_token, expires_in.
     """
     email_lower = request.email.lower().strip()
@@ -58,6 +58,23 @@ def execute(
             commit=True,
         )
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if user.role != CONFIG_USER.ROLE.PATIENT:
+        write_audit_log(
+            db,
+            event_type=AuditEventType.LOGIN_FAILURE,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.ACCOUNT_NOT_ACTIVE,
+            commit=True,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Use doctor login endpoint for provider accounts.",
+        )
 
     if user.status != CONFIG_USER.STATUS.ACTIVE:
         write_audit_log(
@@ -125,4 +142,6 @@ def execute(
         "refresh_token": raw_refresh,
         "token_type": "bearer",
         "expires_in": expires_in_seconds,
+        "email_verified": bool(user.email_verified),
+        "phone_verified": bool(user.phone_verified),
     }

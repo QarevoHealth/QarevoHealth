@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pathlib import Path
 from src.api.auth import (
     forgot_password_router,
+    login_doctor_router,
     login_router,
     logout_router,
     refresh_token_router,
@@ -14,6 +15,8 @@ from src.api.auth import (
     reset_password_router,
     verify_email_router,
     verify_email_code_router,
+    verify_phone_code_router,
+    resend_verification_sms_router,
 )
 from src.api.patient import patient_register_router
 from src.api.users import me_router
@@ -34,9 +37,12 @@ app.include_router(patient_register_router)
 app.include_router(register_doctor_router)
 app.include_router(verify_email_router)
 app.include_router(verify_email_code_router)
+app.include_router(verify_phone_code_router)
+app.include_router(resend_verification_sms_router)
 app.include_router(me_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
+app.include_router(login_doctor_router)
 app.include_router(refresh_token_router)
 app.include_router(logout_router)
 app.include_router(forgot_password_router)

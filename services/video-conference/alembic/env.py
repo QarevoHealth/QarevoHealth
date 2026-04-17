@@ -28,6 +28,7 @@ from src.models import (  # noqa: F401 - register models for autogenerate
     ConsultationDB,
     ConsultationProviderDB,
     EmailVerificationTokenDB,
+    PhoneVerificationOtpDB,
     PatientDB,
     PatientInsuranceDB,
     PasswordResetTokenDB,

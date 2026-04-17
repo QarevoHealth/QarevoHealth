@@ -166,12 +166,17 @@ def execute(
         db.commit()
         raise HTTPException(status_code=400, detail="Invalid verification code.")
 
-    # Valid — activate user
     otp_record.used_at = now
     user.email_verified = True
-    user.status = CONFIG_USER.STATUS.ACTIVE
 
-    # Invalidate any pending link tokens (email is verified, links no longer needed)
+    if user.role == CONFIG_USER.ROLE.PROVIDER:
+        msg = (
+            "Email verified successfully. Enter the SMS code sent to your phone to finish setup."
+        )
+    else:
+        user.status = CONFIG_USER.STATUS.ACTIVE
+        msg = "Email verified successfully."
+
     db.query(EmailVerificationTokenDB).filter(
         EmailVerificationTokenDB.user_id == user.id,
         EmailVerificationTokenDB.used_at.is_(None),
@@ -183,7 +188,7 @@ def execute(
                     user_agent=user_agent)
 
     db.commit()
-    return {"message": "Email verified successfully."}
+    return {"message": msg}
 
 
 def _maybe_lockout(db: Session, user_id) -> None:

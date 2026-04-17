@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.database import get_db
 from src.dependencies.client_info import ClientInfo, get_client_info
-from src.schemas.auth import DoctorRegisterRequest, DoctorRegisterResponse
+from src.schemas.doctor import DoctorRegisterRequest, DoctorRegisterResponse
 from src.use_cases.register_doctor import execute as register_doctor
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth - doctor"])

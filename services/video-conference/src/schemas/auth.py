@@ -113,6 +113,20 @@ class LoginResponse(BaseModel):
     refresh_token: str = Field(..., description="Refresh token (store securely)")
     token_type: str = Field("bearer", description="Token type")
     expires_in: int = Field(..., description="Access token expiry in seconds")
+    email_verified: bool = Field(..., description="Whether email is verified")
+    phone_verified: bool = Field(..., description="Whether phone is verified")
+
+
+class DoctorLoginRequest(BaseModel):
+    """Doctor login request: identifier can be email, username, or phone."""
+
+    identifier: str = Field(..., min_length=1, max_length=255, description="Email, username, or phone number")
+    password: str = Field(..., description="Password")
+
+    @field_validator("identifier")
+    @classmethod
+    def identifier_normalize(cls, v: str) -> str:
+        return v.strip()
 
 
 class RefreshRequest(BaseModel):
@@ -234,6 +248,30 @@ class ResendVerificationResponse(BaseModel):
     message: str = Field("Verification email sent.", description="Status message")
 
 
+class ResendPhoneVerificationRequest(BaseModel):
+    """Request to resend phone verification OTP to the registered phone."""
+
+    country_code: str = Field(..., min_length=1, max_length=5, description="Country code (e.g. +1, +91)")
+    phone: str = Field(..., min_length=1, max_length=20, description="Phone number (digits only)")
+
+    @field_validator("country_code")
+    @classmethod
+    def country_code_valid(cls, v: str) -> str:
+        stripped = v.strip()
+        digits = stripped.lstrip("+")
+        if not digits.isdigit():
+            raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
+        return stripped
+
+    @field_validator("phone")
+    @classmethod
+    def phone_digits_only(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped.isdigit():
+            raise ValueError("Phone number must contain digits only")
+        return stripped
+
+
 class ForgotPasswordRequest(BaseModel):
     """Request to send password reset email."""
 
@@ -322,3 +360,39 @@ class VerifyEmailCodeResponse(BaseModel):
     """Response after successful OTP email verification."""
 
     message: str = Field("Email verified successfully.", description="Status message")
+
+
+class VerifyPhoneCodeRequest(BaseModel):
+    """Provider: verify phone with 6-digit SMS OTP (after email is verified)."""
+
+    country_code: str = Field(..., min_length=1, max_length=5, description="Country code (e.g. +1, +91)")
+    phone: str = Field(..., min_length=1, max_length=20, description="Phone number (digits only)")
+    code: str = Field(..., min_length=6, max_length=6, description="6-digit SMS code")
+
+    @field_validator("country_code")
+    @classmethod
+    def country_code_valid_phone(cls, v: str) -> str:
+        stripped = v.strip()
+        digits = stripped.lstrip("+")
+        if not digits.isdigit():
+            raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
+        return stripped
+
+    @field_validator("phone")
+    @classmethod
+    def phone_digits_only_verify(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped.isdigit():
+            raise ValueError("Phone number must contain digits only")
+        return stripped
+
+    @field_validator("code")
+    @classmethod
+    def code_digits_only_phone(cls, v: str) -> str:
+        if not v.isdigit():
+            raise ValueError("Verification code must be 6 digits")
+        return v
+
+
+class VerifyPhoneCodeResponse(BaseModel):
+    message: str = Field("Phone verified successfully.", description="Status message")

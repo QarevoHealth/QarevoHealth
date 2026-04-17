@@ -16,7 +16,7 @@ from src.use_cases.send_verification_email import execute as send_verification_e
 
 
 def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None = None) -> dict:
-    """Register a new doctor (provider) with consents. Sends email verification on success."""
+    """Register a new doctor (provider) with consents."""
     email_lower = request.email.lower().strip()
 
     existing = db.query(UserDB).filter(UserDB.email.ilike(email_lower)).first()
@@ -83,6 +83,7 @@ def execute(request: DoctorRegisterRequest, db: Session, ip_address: str | None 
             for consent_type, accepted in consent_map.items()
         ])
 
+        # Send doctor verification email through SES (same pattern as patient).
         send_verification_email(
             user_id=user.id,
             user_email=email_lower,
