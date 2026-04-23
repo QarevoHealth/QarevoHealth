@@ -20,7 +20,6 @@ from src.schemas.auth import (
     VerifyEmailCodeRequest,
     VerifyEmailCodeResponse,
 )
-from src.schemas.doctor import DoctorRegisterRequest, DoctorRegisterResponse
 
 __all__ = [
     "ConsentsInput",
@@ -44,4 +43,6 @@ __all__ = [
     "VerifyEmailCodeResponse",
     "DoctorRegisterRequest",
     "DoctorRegisterResponse",
+    "DoctorLoginRequest",
+    "DoctorLoginResponse",
 ]
