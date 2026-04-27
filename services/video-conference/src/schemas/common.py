@@ -28,3 +28,11 @@ class ConsentsInput(BaseModel):
         if not self.telehealth:
             raise ValueError("Telehealth consent must be accepted")
         return self
+
+
+class OptionalConsentsInput(BaseModel):
+    """Consents for minimal signup — all optional, default False; can be completed later."""
+
+    terms_privacy: bool = Field(False, description="Terms & privacy (optional at signup)")
+    telehealth: bool = Field(False, description="Telehealth (optional at signup)")
+    marketing: bool = Field(False, description="Marketing (optional)")

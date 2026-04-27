@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import { BrandLogoFull } from "@/components/brand/BrandLogoFull";
 
 type AppShellProps = {
     children: React.ReactNode;
@@ -11,18 +11,8 @@ export function AppShell({ children }: AppShellProps) {
             <header className="shrink-0 px-8 pb-6 pt-10">
                 <div className="mx-auto flex w-full max-w-6xl items-center justify-between">
                     {/* Brand Icon */}
-                    <div className="flex items-center">
-                        {/* Fixed box controls layout; overflow-hidden trims any “invisible canvas” feel */}
-                        <div className="relative h-70 w-70 overflow-hidden">
-                            <Image
-                                src="/brand/qarevo-icon.png"
-                                alt="Qarevo Health"
-                                fill
-                                priority
-                                sizes="150px"
-                                className="object-contain"
-                            />
-                        </div>
+                    <div className="flex min-w-0 items-center">
+                        <BrandLogoFull height={40} priority />
                     </div>
 
                     <div className="hidden items-center gap-2 text-sm text-[var(--q-muted)] md:flex" />

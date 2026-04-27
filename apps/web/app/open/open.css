@@ -1,0 +1,136 @@
+.verify-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f5f8fc;
+    padding: 40px;
+}
+
+.verify-card {
+    width: 100%;
+    max-width: 1100px;
+    background: #fff;
+    border-radius: 12px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.verify-left {
+    flex: 1;
+    padding: 48px 52px;
+}
+
+.verify-left h2 {
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.subtext {
+    color: #596178;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.code-inputs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.code-box {
+    width: 46px;
+    height: 56px;
+    border-radius: 8px;
+    border: 1.5px solid #d4dae5;
+    text-align: center;
+    font-size: 20px;
+}
+
+.code-box:focus {
+    border-color: #1a73e8;
+    outline: none;
+}
+
+.hint {
+    font-size: 14px;
+    color: #6d7586;
+    margin-bottom: 22px;
+}
+
+.email-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: 1.5px solid #d4dae5;
+    background: #fff;
+    cursor: pointer;
+    font-size: 15px;
+    transition: 0.2s ease;
+}
+
+.btn:hover {
+    background: #eef2f5;
+}
+
+.resend {
+    background: none;
+    border: none;
+    color: #1a73e8;
+    cursor: pointer;
+    font-size: 15px;
+    margin-top: 6px;
+}
+
+.verify-right {
+    position: relative;
+    width: 48%;
+    background: #1d4f91;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 0;
+}
+
+.img-bg {
+    position: absolute;
+    inset: 0;
+    background: url("/brand/auth-bg.png") center/cover no-repeat;
+    opacity: 0.3;
+}
+
+.nurse-img {
+    position: relative;
+    width: 88%;
+    z-index: 2;
+}
+
+.info-box {
+    position: absolute;
+    bottom: 28px;
+    left: 32px;
+    right: 32px;
+    z-index: 3;
+    background: #ffffffee;
+    padding: 18px 22px;
+    border-radius: 10px;
+}
+
+.info-box h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.info-box p {
+    font-size: 14px;
+    margin-top: 4px;
+    color: #4e5568;
+}

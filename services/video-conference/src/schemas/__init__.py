@@ -1,6 +1,6 @@
 """Request/response schemas."""
 
-from src.schemas.common import ConsentsInput, Gender
+from src.schemas.common import ConsentsInput, Gender, OptionalConsentsInput
 from src.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -27,6 +27,7 @@ from src.schemas.doctor import DoctorRegisterRequest, DoctorRegisterResponse
 
 __all__ = [
     "ConsentsInput",
+    "OptionalConsentsInput",
     "Gender",
     "ForgotPasswordRequest",
     "ForgotPasswordResponse",

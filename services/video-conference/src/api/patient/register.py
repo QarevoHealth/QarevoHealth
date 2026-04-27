@@ -17,10 +17,10 @@ def register(
     db: Session = Depends(get_db),
     client: ClientInfo = Depends(get_client_info),
 ):
-    """Register a new patient with consents.
+    """Register a new patient. Only email and password are required.
 
-    Mandatory consents: terms_privacy, telehealth (both must be True).
-    Marketing is optional (default False).
+    Name, phone, DOB, gender, and consents are optional and can be completed later.
+    Omitted consents are stored as not accepted until updated.
     """
     result = register_user(body, db, ip_address=client.ip_address)
     return RegisterResponse(**result)
