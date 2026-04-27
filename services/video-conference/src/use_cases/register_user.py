@@ -32,17 +32,19 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         raise HTTPException(status_code=400, detail="Email already registered")
 
     tenant_id = None
+    first_name = request.first_name or ""
+    last_name = request.last_name or ""
 
     try:
         user = UserDB(
-            first_name=request.first_name,
+            first_name=first_name,
             middle_name=request.middle_name,
-            last_name=request.last_name,
+            last_name=last_name,
             tenant_id=tenant_id,
             role=CONFIG_USER.ROLE.PATIENT,
             email=email_lower,
-            country_code=request.country_code.strip(),
-            phone=request.phone.strip(),
+            country_code=request.country_code,
+            phone=request.phone,
             password_hash=hash_password(request.password),
             status=CONFIG_USER.STATUS.PENDING_VERIFICATION,
             email_verified=False,
@@ -78,7 +80,7 @@ def execute(request: RegisterRequest, db: Session, ip_address: str | None = None
         send_verification_email(
             user_id=user.id,
             user_email=email_lower,
-            user_name=request.first_name,
+            user_name=first_name or email_lower.split("@")[0],
             db=db,
         )
 

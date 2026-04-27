@@ -1,6 +1,6 @@
 """Patient registration API route."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy.orm import Session
 
 from src.database import get_db
@@ -13,12 +13,26 @@ router = APIRouter(prefix="/api/v1/patient", tags=["patient"])
 
 @router.post("/register", response_model=RegisterResponse, status_code=201)
 def register(
-    body: RegisterRequest,
+    body: RegisterRequest = Body(
+        ...,
+        example={
+            "email": "patient@example.com",
+            "password": "Secure@123",
+            "consents": {
+                "terms_privacy": True,
+                "telehealth": True,
+                "marketing": False,
+            },
+        },
+    ),
     db: Session = Depends(get_db),
     client: ClientInfo = Depends(get_client_info),
 ):
-    """Register a new patient with consents.
+    """Register a new patient with minimal required fields.
 
+    Required: email, password, consents.
+    Optional: first_name, middle_name, last_name, phone, country_code,
+    date_of_birth, gender.
     Mandatory consents: terms_privacy, telehealth (both must be True).
     Marketing is optional (default False).
     """
