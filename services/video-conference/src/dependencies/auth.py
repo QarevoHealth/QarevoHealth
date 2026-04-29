@@ -38,6 +38,9 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="User not found")
 
     if not user.email_verified:
-        raise HTTPException(status_code=403, detail="Email not verified")
+        raise HTTPException(
+            status_code=403,
+            detail={"error_code": "EMAIL_VERIFICATION_PENDING"},
+        )
 
     return user

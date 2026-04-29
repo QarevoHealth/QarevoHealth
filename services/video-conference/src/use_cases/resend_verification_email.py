@@ -5,7 +5,6 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.config import config
@@ -15,11 +14,16 @@ from src.models import (
     EmailVerificationTokenDB,
     TokenType,
     UserDB,
-    UserTokenAttemptDB,
-    UserTokenLockoutDB,
 )
 from src.services.email_service import send_email
 from src.services.notification_loader import load_email_template
+from src.use_cases.token_lockout import (
+    build_lockout_payload,
+    count_attempts_with_created_tokens,
+    create_or_extend_lockout,
+    get_active_lockout,
+    raise_lockout_http_exception,
+)
 
 
 def _hash(value: str) -> str:
@@ -30,69 +34,22 @@ def _generate_otp() -> str:
     return str(secrets.randbelow(900000) + 100000)
 
 
-def _check_lockout(db: Session, user_id, token_type: str) -> UserTokenLockoutDB | None:
-    now = datetime.now(timezone.utc)
-    return (
-        db.query(UserTokenLockoutDB)
-        .filter(
-            UserTokenLockoutDB.user_id == user_id,
-            UserTokenLockoutDB.token_type == token_type,
-            UserTokenLockoutDB.locked_until > now,
-        )
-        .first()
-    )
+def _check_lockout(db: Session, user_id, token_type: str):
+    return get_active_lockout(db, user_id, token_type)
 
 
 def _count_attempts(db: Session, user_id, token_type: str) -> int:
-    """Count resends + failed verifies in last 24h."""
-    now = datetime.now(timezone.utc)
-    window_start = now - timedelta(hours=config.RESEND_ATTEMPTS_WINDOW_HOURS)
-
-    resend_count = (
-        db.query(func.count(EmailVerificationTokenDB.id))
-        .filter(
-            EmailVerificationTokenDB.user_id == user_id,
-            EmailVerificationTokenDB.created_at >= window_start,
-        )
-        .scalar()
-        or 0
+    return count_attempts_with_created_tokens(
+        db=db,
+        user_id=user_id,
+        token_type=token_type,
+        window_hours=config.RESEND_ATTEMPTS_WINDOW_HOURS,
+        token_model=EmailVerificationTokenDB,
     )
-
-    fail_count = (
-        db.query(func.count(UserTokenAttemptDB.id))
-        .filter(
-            UserTokenAttemptDB.user_id == user_id,
-            UserTokenAttemptDB.token_type == token_type,
-            UserTokenAttemptDB.attempted_at >= window_start,
-        )
-        .scalar()
-        or 0
-    )
-
-    return resend_count + fail_count
 
 
 def _create_lockout(db: Session, user_id, token_type: str) -> None:
-    now = datetime.now(timezone.utc)
-    locked_until = now + timedelta(hours=config.LOCKOUT_HOURS)
-
-    existing = (
-        db.query(UserTokenLockoutDB)
-        .filter(
-            UserTokenLockoutDB.user_id == user_id,
-            UserTokenLockoutDB.token_type == token_type,
-        )
-        .first()
-    )
-    if existing:
-        existing.locked_until = locked_until
-        existing.created_at = now
-    else:
-        db.add(UserTokenLockoutDB(
-            user_id=user_id,
-            token_type=token_type,
-            locked_until=locked_until,
-        ))
+    create_or_extend_lockout(db, user_id, token_type, config.LOCKOUT_HOURS)
 
 
 def execute(email: str, db: Session) -> dict:
@@ -110,35 +67,44 @@ def execute(email: str, db: Session) -> dict:
     email_lower = email.lower().strip()
     user = db.query(UserDB).filter(UserDB.email.ilike(email_lower)).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=400, detail={"error_code": "EMAIL_VERIFICATION_FAILED"})
 
     if user.status != CONFIG_USER.STATUS.PENDING_VERIFICATION:
         raise HTTPException(
             status_code=400,
-            detail="Email already verified or account not pending verification.",
+            detail={"error_code": "EMAIL_VERIFICATION_FAILED"},
         )
 
     if user.email_verified:
         raise HTTPException(
             status_code=400,
-            detail="Email already verified. Use resend phone verification for a new SMS code.",
+            detail={"error_code": "EMAIL_VERIFICATION_FAILED"},
         )
 
     lockout = _check_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
     if lockout:
-        raise HTTPException(
-            status_code=429,
-            detail=f"Too many attempts. Please try again after {lockout.locked_until.isoformat()}.",
+        payload = build_lockout_payload(
+            locked_until=lockout.locked_until,
+            error_code="EMAIL_VERIFICATION_LOCKED",
+            message="Too many attempts. Try again later.",
+            lockout_hours=config.LOCKOUT_HOURS,
+            attempts_limit=config.RESEND_ATTEMPTS_LIMIT,
         )
+        raise_lockout_http_exception(payload)
 
     attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
     if attempts >= config.RESEND_ATTEMPTS_LIMIT:
+        locked_until = datetime.now(timezone.utc) + timedelta(hours=config.LOCKOUT_HOURS)
         _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
         db.commit()
-        raise HTTPException(
-            status_code=429,
-            detail=f"Too many attempts. You have been locked for {config.LOCKOUT_HOURS} hours. Please try again later.",
+        payload = build_lockout_payload(
+            locked_until=locked_until,
+            error_code="EMAIL_VERIFICATION_LOCKED",
+            message="Too many attempts. Try again later.",
+            lockout_hours=config.LOCKOUT_HOURS,
+            attempts_limit=config.RESEND_ATTEMPTS_LIMIT,
         )
+        raise_lockout_http_exception(payload)
 
     now = datetime.now(timezone.utc)
 
