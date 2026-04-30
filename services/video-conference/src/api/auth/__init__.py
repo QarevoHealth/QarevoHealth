@@ -10,7 +10,6 @@ from src.api.auth.resend_verification_email import router as resend_verification
 from src.api.auth.reset_password import router as reset_password_router
 from src.api.auth.verify_email import router as verify_email_router
 from src.api.auth.verify_email_code import router as verify_email_code_router
-from src.api.auth.register_doctor import router as register_doctor_router
 
 __all__ = [
     "forgot_password_router",
