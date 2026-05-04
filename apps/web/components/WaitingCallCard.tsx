@@ -126,7 +126,7 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
                             setJoining(false);
                         }
                     }}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-400 to-[var(--q-primary)] px-6 py-4 text-base font-semibold text-white shadow-lg transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="q-btn-primary flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base disabled:cursor-not-allowed disabled:opacity-70"
                 >
                     {joining ? (
                         <>

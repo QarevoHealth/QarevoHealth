@@ -1,10 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AuthImageSlider } from "@/components/AuthImageSlider";
 import { AuthPageHeader } from "@/components/AuthPageHeader";
-import { ArrowLeft, CaretDown, Eye, EyeSlash, FirstAidKit, Info, UserCircle, X } from "phosphor-react";
+import { PasswordValidationHints } from "@/components/PasswordValidationHints";
+import { passwordMeetsPolicy } from "@/lib/password-policy";
+import { ArrowLeft, CaretDown, CheckCircle, Eye, EyeSlash, FirstAidKit, Info, UserCircle, X } from "phosphor-react";
+
+const VERIFICATION_RESEND_COOLDOWN_SEC = 30;
 
 type AuthLockoutDetail = {
     error_code: string;
@@ -16,6 +22,7 @@ type AuthLockoutDetail = {
 };
 
 export default function PatientRegisterPage() {
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -24,6 +31,11 @@ export default function PatientRegisterPage() {
     const [confirmationEmail, setConfirmationEmail] = useState("");
     const [verificationAfterRegistration, setVerificationAfterRegistration] = useState(false);
     const [showRegistrationCompleteStep, setShowRegistrationCompleteStep] = useState(false);
+    const [showCompleteProfileStep, setShowCompleteProfileStep] = useState(false);
+    const [profileFlowFromRegistration, setProfileFlowFromRegistration] = useState(false);
+    const [profileFirstName, setProfileFirstName] = useState("");
+    const [profileLastName, setProfileLastName] = useState("");
+    const [profileError, setProfileError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [apiError, setApiError] = useState("");
     const [showLoginRoleMenu, setShowLoginRoleMenu] = useState(false);
@@ -40,8 +52,9 @@ export default function PatientRegisterPage() {
     const [loginEmailVerificationCode, setLoginEmailVerificationCode] = useState<string[]>(Array(6).fill(""));
     const [isVerifyingEmailCode, setIsVerifyingEmailCode] = useState(false);
     const [lastVerificationAttemptCode, setLastVerificationAttemptCode] = useState("");
-    const [resendCooldownSeconds, setResendCooldownSeconds] = useState(60);
+    const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
     const [isResendingVerificationEmail, setIsResendingVerificationEmail] = useState(false);
+    const [showVerificationResendSuccess, setShowVerificationResendSuccess] = useState(false);
     const verificationCodeInputRefs = useRef<Array<HTMLInputElement | null>>([]);
     const [showResetPasswordStep, setShowResetPasswordStep] = useState(false);
     const [showResetPasswordEmailSentStep, setShowResetPasswordEmailSentStep] = useState(false);
@@ -130,6 +143,32 @@ export default function PatientRegisterPage() {
         return () => clearInterval(timer);
     }, [loginVerificationLockedDetail, loginVerificationRetryAfterSeconds]);
 
+    useEffect(() => {
+        if (searchParams.get("login") !== "1") return;
+        setShowLoginModal(true);
+        setLoginError("");
+        if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("login");
+            const qs = url.searchParams.toString();
+            window.history.replaceState({}, "", `${url.pathname}${qs ? `?${qs}` : ""}`);
+        }
+    }, [searchParams]);
+
+    function dismissVerificationOpenLogin() {
+        setShowLoginEmailVerificationStep(false);
+        setVerificationAfterRegistration(false);
+        setLoginEmailVerificationCode(Array(6).fill(""));
+        setLoginEmailForVerification("");
+        setLoginVerificationLockedDetail(null);
+        setLoginVerificationRetryAfterSeconds(0);
+        setLoginError("");
+        setLoginSuccess("");
+        setResendCooldownSeconds(0);
+        setShowVerificationResendSuccess(false);
+        setShowLoginModal(true);
+    }
+
     function resetLoginFormState() {
         setLoginEmail("");
         setLoginPassword("");
@@ -142,7 +181,8 @@ export default function PatientRegisterPage() {
         setLoginEmailVerificationCode(Array(6).fill(""));
         setIsVerifyingEmailCode(false);
         setLastVerificationAttemptCode("");
-        setResendCooldownSeconds(60);
+        setResendCooldownSeconds(0);
+        setShowVerificationResendSuccess(false);
         setIsResendingVerificationEmail(false);
         setShowResetPasswordStep(false);
         setShowResetPasswordEmailSentStep(false);
@@ -157,20 +197,16 @@ export default function PatientRegisterPage() {
         setLoginVerificationRetryAfterSeconds(0);
         setVerificationAfterRegistration(false);
         setShowRegistrationCompleteStep(false);
-    }
-
-    function isValidPassword(value: string) {
-        if (value.length < 8 || value.length > 20) return false;
-        if (!/[A-Z]/.test(value)) return false;
-        if (!/[a-z]/.test(value)) return false;
-        if (!/\d/.test(value)) return false;
-        if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(value)) return false;
-        return true;
+        setShowCompleteProfileStep(false);
+        setProfileFlowFromRegistration(false);
+        setProfileFirstName("");
+        setProfileLastName("");
+        setProfileError("");
     }
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        if (!isValidPassword(password)) {
+        if (!passwordMeetsPolicy(password)) {
             setPasswordError(
                 "Password must be 8-20 characters with uppercase, lowercase, number, and special character."
             );
@@ -182,6 +218,7 @@ export default function PatientRegisterPage() {
         setApiError("");
         setPasswordError("");
         setShowRegistrationCompleteStep(false);
+        setShowCompleteProfileStep(false);
         try {
             const res = await fetch("/api/v1/patient/register", {
                 method: "POST",
@@ -218,7 +255,7 @@ export default function PatientRegisterPage() {
             setLoginVerificationLockedDetail(null);
             setLoginVerificationRetryAfterSeconds(0);
             setLoginEmailVerificationCode(Array(6).fill(""));
-            setResendCooldownSeconds(60);
+            setResendCooldownSeconds(0);
             setLoginError("");
             setLoginSuccess("");
             setPassword("");
@@ -262,7 +299,7 @@ export default function PatientRegisterPage() {
                     setLoginEmailForVerification(loginEmail);
                     setShowLoginEmailVerificationStep(true);
                     applyEmailVerificationLockout(lockout);
-                    setResendCooldownSeconds(60);
+                    setResendCooldownSeconds(0);
                     setLoginError("");
                     setLoginSuccess("");
                     setLoginPassword("");
@@ -283,7 +320,7 @@ export default function PatientRegisterPage() {
                     setShowLoginEmailVerificationStep(true);
                     setLoginVerificationLockedDetail(null);
                     setLoginVerificationRetryAfterSeconds(0);
-                    setResendCooldownSeconds(60);
+                    setResendCooldownSeconds(0);
                     setLoginError("");
                     setLoginSuccess("");
                     setLoginPassword("");
@@ -445,18 +482,28 @@ export default function PatientRegisterPage() {
                 setMessage(
                     typeof data.message === "string"
                         ? data.message
-                        : "Email verified. Your account is ready."
+                        : "Email verified. Complete your profile to finish signing up."
                 );
-                setShowRegistrationCompleteStep(true);
+                setProfileFlowFromRegistration(true);
+                setProfileFirstName("");
+                setProfileLastName("");
+                setProfileError("");
+                setShowCompleteProfileStep(true);
                 return;
             }
 
             setShowLoginEmailVerificationStep(false);
-            setShowLoginModal(true);
             setLoginEmailVerificationCode(Array(6).fill(""));
-            setLoginSuccess(
-                typeof data.message === "string" ? data.message : "Email verified. You can log in now."
-            );
+            setLoginVerificationLockedDetail(null);
+            setLoginVerificationRetryAfterSeconds(0);
+            setLoginEmailForVerification("");
+            setConfirmationEmail(verifiedEmail);
+            setLoginEmail(verifiedEmail);
+            setProfileFlowFromRegistration(false);
+            setProfileFirstName("");
+            setProfileLastName("");
+            setProfileError("");
+            setShowCompleteProfileStep(true);
         } catch (error) {
             setLoginError(error instanceof Error ? error.message : "Email verification failed");
         } finally {
@@ -486,6 +533,12 @@ export default function PatientRegisterPage() {
         return () => clearInterval(timer);
     }, [showLoginEmailVerificationStep, resendCooldownSeconds]);
 
+    useEffect(() => {
+        if (!showLoginEmailVerificationStep) return;
+        if (resendCooldownSeconds > 0) return;
+        setShowVerificationResendSuccess(false);
+    }, [showLoginEmailVerificationStep, resendCooldownSeconds]);
+
     async function resendVerificationEmail() {
         if (!loginEmailForVerification) {
             setLoginError("Missing email for verification.");
@@ -495,6 +548,7 @@ export default function PatientRegisterPage() {
 
         setIsResendingVerificationEmail(true);
         setLoginError("");
+        setShowVerificationResendSuccess(false);
 
         try {
             const res = await fetch("/api/v1/auth/resend-verification-email", {
@@ -555,10 +609,9 @@ export default function PatientRegisterPage() {
 
             setLoginVerificationLockedDetail(null);
             setLoginVerificationRetryAfterSeconds(0);
-            setResendCooldownSeconds(60);
-            setLoginSuccess(
-                typeof data.message === "string" ? data.message : "Verification email sent again."
-            );
+            setLoginSuccess("");
+            setShowVerificationResendSuccess(true);
+            setResendCooldownSeconds(VERIFICATION_RESEND_COOLDOWN_SEC);
         } catch (error) {
             setLoginError(error instanceof Error ? error.message : "Failed to resend verification email");
         } finally {
@@ -608,7 +661,9 @@ export default function PatientRegisterPage() {
 
                 const detailText = Array.isArray(data.detail)
                     ? data.detail.map((item) => item.msg).filter(Boolean).join(", ")
-                    : data.detail;
+                    : typeof data.detail === "string"
+                      ? data.detail
+                      : "";
                 throw new Error(data.error || detailText || "Failed to request password reset");
             }
 
@@ -626,21 +681,43 @@ export default function PatientRegisterPage() {
         await requestForgotPassword(resetEmail);
     }
 
+    function handleCompleteProfileSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        const first = profileFirstName.trim();
+        const last = profileLastName.trim();
+        if (!first || !last) {
+            setProfileError("Please enter your first and last name.");
+            return;
+        }
+        setProfileError("");
+        // TODO: PATCH profile (first_name, last_name) when API is available
+        setShowCompleteProfileStep(false);
+        if (profileFlowFromRegistration) {
+            setMessage("Your account is ready.");
+            setShowRegistrationCompleteStep(true);
+        } else {
+            setShowLoginModal(true);
+            setLoginSuccess("Profile saved. You can log in now.");
+        }
+    }
+
     return (
-        <div className="relative min-h-screen overflow-hidden bg-white">
-            <AuthPageHeader>
+        <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-50">
+            <AuthPageHeader className="sticky top-0 z-[100] !border-q-azure-200 !bg-white/95 shadow-sm backdrop-blur-md">
                 <div className="relative">
                     <button
                         type="button"
                         onClick={() => setShowLoginRoleMenu((prev) => !prev)}
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-[#16355e]"
+                        className="inline-flex items-center gap-1 text-sm font-semibold text-q-heading hover:text-q-link"
                     >
                         Do you already have an account? <span className="underline">Log in</span> <CaretDown size={12} />
                     </button>
 
                     {showLoginRoleMenu ? (
-                        <div className="absolute right-0 top-[34px] z-30 min-w-[170px] rounded-md border border-[#dce4ef] bg-white shadow-md">
-                            <p className="px-3 pt-2 text-xs font-semibold uppercase text-[#7b8aa1]">Continue as:</p>
+                        <div className="absolute right-0 top-[34px] z-30 min-w-[196px] rounded-lg border border-q-azure-200 bg-white p-2 shadow-md">
+                            <p className="px-2 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wide text-q-muted-text">
+                                Continue as:
+                            </p>
                             <button
                                 type="button"
                                 onClick={() => {
@@ -649,9 +726,10 @@ export default function PatientRegisterPage() {
                                     setShowLoginRoleMenu(false);
                                     setShowLoginModal(true);
                                 }}
-                                className="flex w-full items-center gap-2 border-t border-[#eef3f8] px-3 py-2 text-left text-sm font-medium text-[#1f3556] hover:bg-[#f7fbff]"
+                                className="flex w-full items-center gap-2.5 rounded-lg border border-q-azure-100 bg-q-azure-50 px-3 py-2.5 text-left text-sm font-medium text-q-heading transition-colors hover:bg-q-azure-100"
                             >
-                                <UserCircle size={16} /> Patient
+                                <UserCircle size={18} weight="regular" className="shrink-0 text-q-azure-600" />
+                                Patient
                             </button>
                             <button
                                 type="button"
@@ -661,32 +739,33 @@ export default function PatientRegisterPage() {
                                     setShowLoginRoleMenu(false);
                                     setShowLoginModal(true);
                                 }}
-                                className="flex w-full items-center gap-2 border-t border-[#eef3f8] px-3 py-2 text-left text-sm font-medium text-[#1f3556] hover:bg-[#f7fbff]"
+                                className="mt-1 flex w-full items-center gap-2.5 rounded-lg border border-q-azure-100 bg-q-azure-50 px-3 py-2.5 text-left text-sm font-medium text-q-heading transition-colors hover:bg-q-azure-100"
                             >
-                                <FirstAidKit size={16} /> Doctor
+                                <FirstAidKit size={18} weight="regular" className="shrink-0 text-q-sky-surge" />
+                                Doctor
                             </button>
                         </div>
                     ) : null}
                 </div>
             </AuthPageHeader>
 
-            <main className="relative z-10 mx-auto mt-14 w-[92%] max-w-6xl rounded-2xl border border-[#e5ebf2] bg-white/70 p-6 backdrop-blur">
-                <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-[#e3e8ef] bg-white p-8 lg:grid-cols-2">
+            <main className="relative z-10 mx-auto mt-10 w-[92%] max-w-6xl rounded-2xl border border-q-azure-200 bg-white p-6 shadow-sm sm:mt-14">
+                <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-q-azure-200 bg-white p-8 shadow-sm lg:grid-cols-2">
                     <section className="pr-0 lg:pr-8">
                         {showLoginEmailVerificationStep ? (
                             loginVerificationLockedDetail ? (
-                                <div className="rounded-xl border border-[#dce4ef] p-8">
-                                    <h2 className="text-[40px] font-bold leading-tight text-[#16355e] md:text-[46px]">
+                                <div className="rounded-xl border border-q-border p-8">
+                                    <h2 className="text-[30px] font-bold leading-tight text-q-heading">
                                         Too many attempts
                                     </h2>
-                                    <div className="mt-4 flex gap-3 rounded-lg bg-[#fef2f2] px-4 py-3 text-sm leading-snug text-[#cf5f5f]">
+                                    <div className="mt-4 flex gap-3 rounded-lg bg-q-danger-bg px-4 py-3 text-sm leading-snug text-q-danger">
                                         <Info size={22} weight="fill" className="mt-0.5 shrink-0" aria-hidden />
                                         <span>
                                             {loginVerificationLockedDetail.message ??
                                                 "This email has been temporarily blocked due to multiple verification attempts. Please try again later."}
                                         </span>
                                     </div>
-                                    <p className="mt-8 text-lg font-semibold text-[#16355e] md:text-xl">
+                                    <p className="mt-8 text-lg font-semibold text-q-heading md:text-xl">
                                         You can request a new code in
                                     </p>
                                     {(() => {
@@ -694,38 +773,38 @@ export default function PatientRegisterPage() {
                                         return (
                                             <div className="mt-4 flex items-start gap-2 md:gap-3">
                                                 <div className="w-full min-w-0">
-                                                    <div className="rounded-xl border border-[#c8d7e8] bg-[#f7fbff] px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
-                                                        <span className="text-3xl font-semibold leading-none text-[#16355e] md:text-[50px]">
+                                                    <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
+                                                        <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
                                                             {countdown.hours}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-[#16355e] md:text-[18px]">
+                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
                                                         HOURS
                                                     </p>
                                                 </div>
-                                                <span className="pt-4 text-2xl font-semibold text-[#16355e] md:pt-7 md:text-[36px]">
+                                                <span className="pt-4 text-2xl font-semibold text-q-heading md:pt-7 md:text-[36px]">
                                                     :
                                                 </span>
                                                 <div className="w-full min-w-0">
-                                                    <div className="rounded-xl border border-[#c8d7e8] bg-[#f7fbff] px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
-                                                        <span className="text-3xl font-semibold leading-none text-[#16355e] md:text-[50px]">
+                                                    <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
+                                                        <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
                                                             {countdown.minutes}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-[#16355e] md:text-[18px]">
+                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
                                                         MINUTES
                                                     </p>
                                                 </div>
-                                                <span className="pt-4 text-2xl font-semibold text-[#16355e] md:pt-7 md:text-[36px]">
+                                                <span className="pt-4 text-2xl font-semibold text-q-heading md:pt-7 md:text-[36px]">
                                                     :
                                                 </span>
                                                 <div className="w-full min-w-0">
-                                                    <div className="rounded-xl border border-[#c8d7e8] bg-[#f7fbff] px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
-                                                        <span className="text-3xl font-semibold leading-none text-[#16355e] md:text-[50px]">
+                                                    <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
+                                                        <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
                                                             {countdown.seconds}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-[#16355e] md:text-[18px]">
+                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
                                                         SECONDS
                                                     </p>
                                                 </div>
@@ -734,17 +813,18 @@ export default function PatientRegisterPage() {
                                     })()}
                                 </div>
                             ) : (
-                            <div className="rounded-xl border border-[#dce4ef] p-8">
-                                <h2 className="text-[46px] font-bold leading-tight text-[#16355e]">We emailed you a code</h2>
-                                <p className="mt-3 text-base text-[#6f819a]">
-                                    We sent an email to{" "}
-                                    <span className="font-semibold text-[#1f3556]">{loginEmailForVerification || "your email"}</span>.
+                            <div className="rounded-xl border border-q-border p-8">
+                                <h2 className="text-[30px] font-bold leading-tight text-q-heading">We emailed you the code</h2>
+                                <p className="mt-4 text-base text-q-muted-text">
+                                    Check{" "}
+                                    <span className="font-semibold text-q-heading">{loginEmailForVerification || "your email"}</span>{" "}
+                                    for a message from Qarevo Health with your verification code.
                                     {verificationAfterRegistration
                                         ? " Enter the 6-digit code below to finish creating your account."
-                                        : " Enter the code or tap the button in the email to continue."}
+                                        : " Enter the code below, or use the link in that email to continue."}
                                 </p>
 
-                                <p className="mt-5 text-sm font-semibold text-[#3f5676]">Confirmation code</p>
+                                <p className="mt-5 text-sm font-semibold text-q-label">Confirmation code</p>
                                 <div className="mt-2 flex items-center gap-2">
                                     {loginEmailVerificationCode.slice(0, 3).map((char, idx) => (
                                         <input
@@ -754,7 +834,7 @@ export default function PatientRegisterPage() {
                                             ref={(el) => {
                                                 verificationCodeInputRefs.current[idx] = el;
                                             }}
-                                            className="h-12 w-12 rounded-md border border-[#c8d7e8] bg-[#f7fbff] text-center text-lg font-semibold text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                            className="h-12 w-12 rounded-md border border-q-border-strong bg-white text-center text-lg font-semibold text-q-heading outline-none transition-[border-color,background-color,box-shadow] hover:border-q-accent hover:bg-q-azure-50 hover:shadow-sm focus:border-q-accent focus:ring-2 focus:ring-q-accent/20"
                                             value={char}
                                             maxLength={1}
                                             onKeyDown={(e) => handleVerificationCodeKeyDown(idx, e.key)}
@@ -765,7 +845,7 @@ export default function PatientRegisterPage() {
                                             onChange={(e) => updateVerificationCodeAtIndex(idx, e.target.value)}
                                         />
                                     ))}
-                                    <span className="px-1 text-[#97a8bf]">-</span>
+                                    <span className="px-1 text-q-muted-text">-</span>
                                     {loginEmailVerificationCode.slice(3, 6).map((char, idx) => (
                                         <input
                                             key={idx + 3}
@@ -774,7 +854,7 @@ export default function PatientRegisterPage() {
                                             ref={(el) => {
                                                 verificationCodeInputRefs.current[idx + 3] = el;
                                             }}
-                                            className="h-12 w-12 rounded-md border border-[#c8d7e8] bg-[#f7fbff] text-center text-lg font-semibold text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                            className="h-12 w-12 rounded-md border border-q-border-strong bg-white text-center text-lg font-semibold text-q-heading outline-none transition-[border-color,background-color,box-shadow] hover:border-q-accent hover:bg-q-azure-50 hover:shadow-sm focus:border-q-accent focus:ring-2 focus:ring-q-accent/20"
                                             value={char}
                                             maxLength={1}
                                             onKeyDown={(e) => handleVerificationCodeKeyDown(idx + 3, e.key)}
@@ -787,7 +867,7 @@ export default function PatientRegisterPage() {
                                     ))}
                                 </div>
 
-                                <p className="mt-4 text-sm text-[#6f819a]">
+                                <p className="mt-4 text-sm text-q-muted-text">
                                     If you don&apos;t see the email, check your spam or junk folder.
                                 </p>
 
@@ -796,7 +876,7 @@ export default function PatientRegisterPage() {
                                         href="https://mail.google.com"
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="block w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-center text-sm font-semibold text-[#2b466b]"
+                                        className="block w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-center text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Open Gmail
                                     </a>
@@ -804,41 +884,122 @@ export default function PatientRegisterPage() {
                                         href="https://outlook.live.com/mail/0/"
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="block w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-center text-sm font-semibold text-[#2b466b]"
+                                        className="block w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-center text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Open Outlook
                                     </a>
                                 </div>
 
-                                <div className="my-5 h-px bg-[#e2e8f0]" />
+                                <div className="my-5 h-px bg-q-border" />
 
-                                <button
-                                    type="button"
-                                    disabled={resendCooldownSeconds > 0 || isResendingVerificationEmail}
-                                    onClick={() => {
-                                        void resendVerificationEmail();
-                                    }}
-                                    className="w-full text-sm font-semibold text-[#2f7dbd] disabled:opacity-60"
-                                >
-                                    {isResendingVerificationEmail
-                                        ? "Resending..."
-                                        : resendCooldownSeconds > 0
-                                          ? `Resend code in ${resendCooldownSeconds}s`
-                                          : "Resend code"}
-                                </button>
+                                <div className="mt-1 min-h-[48px]">
+                                    {showVerificationResendSuccess && resendCooldownSeconds > 0 ? (
+                                        <div
+                                            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-emerald-200 bg-white px-4 py-3.5 text-sm font-semibold text-emerald-800 shadow-[0_6px_20px_rgba(5,150,105,0.15)]"
+                                            role="status"
+                                        >
+                                            <CheckCircle
+                                                size={22}
+                                                weight="fill"
+                                                className="shrink-0 text-emerald-600"
+                                                aria-hidden
+                                            />
+                                            <span>Verification code sent</span>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled={isResendingVerificationEmail}
+                                            onClick={() => {
+                                                void resendVerificationEmail();
+                                            }}
+                                            className="w-full py-2.5 text-sm font-semibold text-q-link transition-opacity hover:underline disabled:cursor-wait disabled:opacity-55"
+                                        >
+                                            Resend code
+                                        </button>
+                                    )}
+                                </div>
+
+                            
 
                                 {loginError ? <p className="mt-3 text-sm text-red-600">{loginError}</p> : null}
-                                {loginSuccess ? <p className="mt-3 text-sm text-emerald-700">{loginSuccess}</p> : null}
+                                {loginSuccess ? <p className="mt-3 text-sm text-q-success">{loginSuccess}</p> : null}
                             </div>
                             )
+                        ) : showCompleteProfileStep ? (
+                            <div className="rounded-xl border border-q-border p-8">
+                                <h2 className="text-[30px] font-bold leading-tight text-q-heading">Complete Your Profile</h2>
+                                <p className="mt-3 text-base leading-relaxed text-q-muted-text">
+                                    Please enter your first and last name to continue. This helps us personalize your
+                                    experience on the platform.
+                                </p>
+
+                                <form className="mt-8 space-y-4" onSubmit={handleCompleteProfileSubmit}>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div>
+                                            <label
+                                                htmlFor="profile-first-name"
+                                                className="mb-2 block text-sm font-semibold text-q-label"
+                                            >
+                                                First name
+                                            </label>
+                                            <input
+                                                id="profile-first-name"
+                                                type="text"
+                                                autoComplete="given-name"
+                                                required
+                                                value={profileFirstName}
+                                                onChange={(e) => {
+                                                    setProfileFirstName(e.target.value);
+                                                    if (profileError) setProfileError("");
+                                                }}
+                                                placeholder="First name"
+                                                className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 text-q-heading outline-none focus:border-q-accent"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label
+                                                htmlFor="profile-last-name"
+                                                className="mb-2 block text-sm font-semibold text-q-label"
+                                            >
+                                                Last name
+                                            </label>
+                                            <input
+                                                id="profile-last-name"
+                                                type="text"
+                                                autoComplete="family-name"
+                                                required
+                                                value={profileLastName}
+                                                onChange={(e) => {
+                                                    setProfileLastName(e.target.value);
+                                                    if (profileError) setProfileError("");
+                                                }}
+                                                placeholder="Last name"
+                                                className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 text-q-heading outline-none focus:border-q-accent"
+                                            />
+                                        </div>
+                                    </div>
+                                    {profileError ? <p className="text-sm text-red-600">{profileError}</p> : null}
+                                    <div className="flex gap-3 rounded-lg border border-q-azure-200 bg-q-azure-50 px-4 py-3 text-sm leading-snug text-q-muted-text">
+                                        <Info size={20} weight="fill" className="mt-0.5 shrink-0 text-q-accent" aria-hidden />
+                                        <p>You can update this information later in your profile settings.</p>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="q-btn-primary w-full rounded-md px-4 py-3 text-sm"
+                                    >
+                                        Continue to Platform
+                                    </button>
+                                </form>
+                            </div>
                         ) : showRegistrationCompleteStep ? (
-                            <div className="rounded-xl border border-[#dce4ef] p-8">
-                                <h2 className="text-[46px] font-bold leading-tight text-[#16355e]">You&apos;re all set</h2>
-                                <p className="mt-3 text-base text-[#6f819a]">
-                                    <span className="font-semibold text-[#1f3556]">{confirmationEmail || "Your email"}</span>{" "}
+                            <div className="rounded-xl border border-q-border p-8">
+                                <h2 className="text-[30px] font-bold leading-tight text-q-heading">You&apos;re all set</h2>
+                                <p className="mt-3 text-base text-q-muted-text">
+                                    <span className="font-semibold text-q-heading">{confirmationEmail || "Your email"}</span>{" "}
                                     is verified. You can log in with your password anytime.
                                 </p>
-                                {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
+                                {message ? <p className="mt-3 text-sm text-q-success">{message}</p> : null}
 
                                 <button
                                     type="button"
@@ -846,62 +1007,67 @@ export default function PatientRegisterPage() {
                                         setSelectedLoginRole("patient");
                                         setShowLoginModal(true);
                                     }}
-                                    className="mt-8 w-full rounded-md bg-[#14528f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0f467b]"
+                                    className="q-btn-primary mt-8 w-full rounded-md px-4 py-3 text-sm"
                                 >
                                     Log in
                                 </button>
 
-                                <div className="my-5 h-px bg-[#e2e8f0]" />
+                                <div className="my-5 h-px bg-q-border" />
 
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setShowRegistrationCompleteStep(false);
+                                        setShowCompleteProfileStep(false);
+                                        setProfileFlowFromRegistration(false);
+                                        setProfileFirstName("");
+                                        setProfileLastName("");
+                                        setProfileError("");
                                         setConfirmationEmail("");
                                         setEmail("");
                                         setPassword("");
                                         setMessage("");
                                         setApiError("");
                                     }}
-                                    className="w-full text-sm font-semibold text-[#2f7dbd]"
+                                    className="w-full text-sm font-semibold text-q-link"
                                 >
                                     Create another account
                                 </button>
                             </div>
                         ) : (
                             <>
-                                <h1 className="text-5xl font-bold text-[#16355e]">Create your free account</h1>
+                                <h1 className="text-[30px] font-bold leading-tight text-q-heading">Create your free account</h1>
 
                                 <div className="mt-6 grid grid-cols-3 gap-2">
                                     <button
                                         type="button"
-                                        className="rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-sm font-semibold text-[#2b466b]"
+                                        className="rounded-md border border-q-azure-200 bg-white px-3 py-2 text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Google
                                     </button>
                                     <button
                                         type="button"
-                                        className="rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-sm font-semibold text-[#2b466b]"
+                                        className="rounded-md border border-q-azure-200 bg-white px-3 py-2 text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Apple
                                     </button>
                                     <button
                                         type="button"
-                                        className="rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-sm font-semibold text-[#2b466b]"
+                                        className="rounded-md border border-q-azure-200 bg-white px-3 py-2 text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Microsoft
                                     </button>
                                 </div>
 
-                                <div className="my-4 flex items-center gap-2 text-[#9aabc0]">
-                                    <div className="h-px flex-1 bg-[#dbe4ef]" />
+                                <div className="my-4 flex items-center gap-2 text-q-muted-text">
+                                    <div className="h-px flex-1 bg-q-border" />
                                     <span className="text-xs font-medium">or</span>
-                                    <div className="h-px flex-1 bg-[#dbe4ef]" />
+                                    <div className="h-px flex-1 bg-q-border" />
                                 </div>
 
                                 <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
                                     <div>
-                                        <label htmlFor="email" className="mb-2 block text-sm font-semibold text-[#405676]">
+                                        <label htmlFor="email" className="mb-2 block text-sm font-semibold text-q-label">
                                             Email address
                                         </label>
                                         <input
@@ -911,12 +1077,12 @@ export default function PatientRegisterPage() {
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             placeholder="email@domain.com"
-                                            className="w-full rounded-md border border-[#d6deea] px-4 py-3 text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                            className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 text-q-heading outline-none focus:border-q-accent"
                                         />
                                     </div>
 
                                     <div className="relative">
-                                        <label htmlFor="password" className="mb-2 block text-sm font-semibold text-[#405676]">
+                                        <label htmlFor="password" className="mb-2 block text-sm font-semibold text-q-label">
                                             Password
                                         </label>
                                         <input
@@ -931,36 +1097,37 @@ export default function PatientRegisterPage() {
                                                 if (passwordError) setPasswordError("");
                                             }}
                                             placeholder="********"
-                                            className="w-full rounded-md border border-[#d6deea] px-4 py-3 pr-11 text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                            className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 pr-11 text-q-heading outline-none focus:border-q-accent"
                                         />
                                         <button
                                             type="button"
                                             aria-label={showPassword ? "Hide password" : "Show password"}
                                             onClick={() => setShowPassword((prev) => !prev)}
-                                            className="absolute right-3 top-[38px] text-[#7b95b4]"
+                                            className="absolute right-3 top-[38px] text-q-muted-text"
                                         >
                                             {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
                                         </button>
+                                        <PasswordValidationHints value={password} className="mt-2" />
                                         {passwordError ? <p className="mt-2 text-xs text-red-600">{passwordError}</p> : null}
                                     </div>
 
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full rounded-md bg-[#14528f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0f467b] disabled:opacity-60"
+                                        className="q-btn-primary w-full rounded-md px-4 py-3 text-sm disabled:opacity-60"
                                     >
                                         {loading ? "Please wait..." : "Continue"}
                                     </button>
                                 </form>
 
-                                <p className="mt-4 text-sm text-[#6d7e95]">
+                                <p className="mt-4 text-sm text-q-muted-text">
                                     By continuing, you confirm that you have read and agree to our{" "}
-                                    <span className="font-semibold text-[#16355e]">terms and conditions</span> and{" "}
-                                    our <span className="font-semibold text-[#16355e]">privacy policy</span>.
+                                    <span className="font-semibold text-q-heading">terms and conditions</span> and{" "}
+                                    our <span className="font-semibold text-q-heading">privacy policy</span>.
                                 </p>
 
                                 {apiError ? <p className="mt-3 text-sm text-red-600">{apiError}</p> : null}
-                                {message ? <p className="mt-3 text-sm text-emerald-700">{message}</p> : null}
+                                {message ? <p className="mt-3 text-sm text-q-success">{message}</p> : null}
                             </>
                         )}
                     </section>
@@ -974,9 +1141,9 @@ export default function PatientRegisterPage() {
             {showLoginModal ? (
                 <div className="absolute inset-0 z-40 flex items-center justify-center p-4">
                     <div className="absolute inset-0 backdrop-blur-[8px]" />
-                    <div className="absolute inset-0 bg-[#6f8fb7]/30" />
+                    <div className="absolute inset-0 bg-q-heading/25" />
 
-                    <div className="relative w-full max-w-[430px] rounded-2xl border border-[#dce4ef] bg-white p-4 shadow-[0_20px_50px_rgba(20,52,93,0.25)]">
+                    <div className="relative w-full max-w-[430px] rounded-2xl border border-q-azure-200 bg-white p-4 shadow-[0_20px_50px_rgba(20,52,93,0.25)]">
                         <button
                             type="button"
                             aria-label="Close login modal"
@@ -984,9 +1151,9 @@ export default function PatientRegisterPage() {
                                 setShowLoginModal(false);
                                 resetLoginFormState();
                             }}
-                            className="absolute right-4 top-4 text-[#8a99ae]"
+                            className="absolute right-4 top-4 text-q-muted-text"
                         >
-                            <X size={20} />
+                            {/* <X size={20} /> */}
                         </button>
 
                         {showResetPasswordStep ? (
@@ -1001,14 +1168,14 @@ export default function PatientRegisterPage() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setShowResetPasswordLockedStep(false)}
-                                                            className="text-[#7f8da3]"
+                                                            className="text-q-muted-text"
                                                             aria-label="Back"
                                                         >
                                                             <ArrowLeft size={20} />
                                                         </button>
                                                         <div className="flex items-center gap-2">
                                                             <Image src="/logo-symbol.png" alt="Qarevo symbol" width={20} height={20} />
-                                                            <span className="text-[32px] font-semibold text-[#1f3556]">Qarevo Health</span>
+                                                            <span className="text-[30px] font-semibold text-q-heading">Qarevo Health</span>
                                                         </div>
                                                         <button
                                                             type="button"
@@ -1016,49 +1183,49 @@ export default function PatientRegisterPage() {
                                                                 setShowLoginModal(false);
                                                                 resetLoginFormState();
                                                             }}
-                                                            className="text-[#8a99ae]"
+                                                            className="text-q-muted-text"
                                                             aria-label="Close"
                                                         >
                                                             <X size={20} />
                                                         </button>
                                                     </div>
 
-                                                    <h3 className="text-[44px] font-bold leading-tight text-[#1f3556]">Too many attempts</h3>
-                                                    <div className="mt-2 text-[14px] leading-5 text-[#cf5f5f]">
+                                                    <h3 className="text-[30px] font-bold leading-tight text-q-heading">Too many attempts</h3>
+                                                    <div className="mt-2 text-[14px] leading-5 text-q-danger">
                                                         <p>You&apos;ve requested a password reset too many times.</p>
                                                         <p>This email is temporarily blocked.</p>
                                                     </div>
 
-                                                    <p className="mt-5 text-[30px] font-semibold leading-tight text-[#1f3556]">
+                                                    <p className="mt-5 text-[20px] font-semibold leading-tight text-q-heading">
                                                         You can request a new reset link in
                                                     </p>
 
-                                                    <div className="mt-4 flex items-start gap-2">
+                                                    <div className="mt-3 flex items-start gap-2">
                                                         <div className="w-full">
-                                                            <div className="rounded-xl border border-[#b9cad9] bg-white px-4 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)]">
-                                                                <span className="text-[50px] font-semibold leading-none text-[#1f3556]">
+                                                            <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-4 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)]">
+                                                                <span className="text-[50px] font-semibold leading-none text-q-heading">
                                                                     {countdown.hours}
                                                                 </span>
                                                             </div>
-                                                            <p className="mt-2 text-center text-[20px] font-semibold text-[#1f3556]">HOURS</p>
+                                                            <p className="mt-2 text-center text-[20px] font-semibold text-q-heading">HOURS</p>
                                                         </div>
-                                                        <span className="pt-4 text-[36px] font-semibold text-[#1f3556]">:</span>
+                                                        <span className="pt-4 text-[36px] font-semibold text-q-heading">:</span>
                                                         <div className="w-full">
-                                                            <div className="rounded-xl border border-[#b9cad9] bg-white px-4 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)]">
-                                                                <span className="text-[50px] font-semibold leading-none text-[#1f3556]">
+                                                            <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-4 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)]">
+                                                                <span className="text-[50px] font-semibold leading-none text-q-heading">
                                                                     {countdown.minutes}
                                                                 </span>
                                                             </div>
-                                                            <p className="mt-2 text-center text-[20px] font-semibold text-[#1f3556]">MINUTES</p>
+                                                            <p className="mt-2 text-center text-[20px] font-semibold text-q-heading">MINUTES</p>
                                                         </div>
-                                                        <span className="pt-4 text-[36px] font-semibold text-[#1f3556]">:</span>
+                                                        <span className="pt-4 text-[30px] font-semibold text-q-heading">:</span>
                                                         <div className="w-full">
-                                                            <div className="rounded-xl border border-[#b9cad9] bg-white px-4 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)]">
-                                                                <span className="text-[50px] font-semibold leading-none text-[#1f3556]">
+                                                            <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-4 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)]">
+                                                                <span className="text-[50px] font-semibold leading-none text-q-heading">
                                                                     {countdown.seconds}
                                                                 </span>
                                                             </div>
-                                                            <p className="mt-2 text-center text-[20px] font-semibold text-[#1f3556]">SECONDS</p>
+                                                            <p className="mt-2 text-center text-[20px] font-semibold text-q-heading">SECONDS</p>
                                                         </div>
                                                     </div>
                                                 </>
@@ -1071,14 +1238,14 @@ export default function PatientRegisterPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowResetPasswordEmailSentStep(false)}
-                                                className="text-[#7f8da3]"
+                                                className="text-q-muted-text"
                                                 aria-label="Back"
                                             >
                                                 <ArrowLeft size={20} />
                                             </button>
                                             <div className="flex items-center gap-2">
                                                 <Image src="/logo-symbol.png" alt="Qarevo symbol" width={20} height={20} />
-                                                <span className="text-[32px] font-semibold text-[#1f3556]">Qarevo Health</span>
+                                                <span className="text-[25px] font-semibold text-q-heading">Qarevo Health</span>
                                             </div>
                                             <button
                                                 type="button"
@@ -1086,15 +1253,15 @@ export default function PatientRegisterPage() {
                                                     setShowLoginModal(false);
                                                     resetLoginFormState();
                                                 }}
-                                                className="text-[#8a99ae]"
+                                                className="text-q-muted-text"
                                                 aria-label="Close"
                                             >
-                                                <X size={20} />
+                                                {/* <X size={20} /> */}
                                             </button>
                                         </div>
 
-                                        <h3 className="text-[40px] font-bold leading-tight text-[#1f3556]">Check your email</h3>
-                                        <p className="mt-2 text-base text-[#6f819a]">
+                                        <h3 className="text-[30px] font-bold leading-tight text-q-heading">Check your email</h3>
+                                        <p className="mt-2 text-base text-q-muted-text">
                                             Check your inbox for password reset email from no-reply@email.qarevo-health.com
                                         </p>
 
@@ -1103,7 +1270,7 @@ export default function PatientRegisterPage() {
                                                 href="https://mail.google.com"
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="block w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-center text-sm font-semibold text-[#2b466b]"
+                                                className="block w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-center text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                             >
                                                 Open Gmail
                                             </a>
@@ -1111,16 +1278,16 @@ export default function PatientRegisterPage() {
                                                 href="https://outlook.live.com/mail/0/"
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="block w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-center text-sm font-semibold text-[#2b466b]"
+                                                className="block w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-center text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                             >
                                                 Open Outlook
                                             </a>
                                         </div>
 
-                                        <div className="my-4 flex items-center gap-2 text-[#9aabc0]">
-                                            <div className="h-px flex-1 bg-[#dbe4ef]" />
+                                        <div className="my-4 flex items-center gap-2 text-q-muted-text">
+                                            <div className="h-px flex-1 bg-q-border" />
                                             <span className="text-xs font-medium">or</span>
-                                            <div className="h-px flex-1 bg-[#dbe4ef]" />
+                                            <div className="h-px flex-1 bg-q-border" />
                                         </div>
 
                                         <button
@@ -1128,13 +1295,13 @@ export default function PatientRegisterPage() {
                                             onClick={() => {
                                                 void requestForgotPassword(resetEmail);
                                             }}
-                                            className="w-full text-sm font-semibold text-[#2f7dbd]"
+                                            className="w-full text-sm font-semibold text-q-link"
                                         >
                                             Resend email
                                         </button>
 
                                         {resetError ? <p className="mt-3 text-sm text-red-600">{resetError}</p> : null}
-                                        {resetSuccess ? <p className="mt-3 text-sm text-emerald-700">{resetSuccess}</p> : null}
+                                        {resetSuccess ? <p className="mt-3 text-sm text-q-success">{resetSuccess}</p> : null}
                                     </>
                                 ) : (
                                     <>
@@ -1142,14 +1309,14 @@ export default function PatientRegisterPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowResetPasswordStep(false)}
-                                                className="text-[#7f8da3]"
+                                                className="text-q-muted-text"
                                                 aria-label="Back"
                                             >
                                                 <ArrowLeft size={20} />
                                             </button>
                                             <div className="flex items-center gap-2">
                                                 <Image src="/logo-symbol.png" alt="Qarevo symbol" width={20} height={20} />
-                                                <span className="text-[32px] font-semibold text-[#1f3556]">Qarevo Health</span>
+                                                <span className="text-[28px] font-semibold text-q-heading">Qarevo Health</span>
                                             </div>
                                             <button
                                                 type="button"
@@ -1157,22 +1324,22 @@ export default function PatientRegisterPage() {
                                                     setShowLoginModal(false);
                                                     resetLoginFormState();
                                                 }}
-                                                className="text-[#8a99ae]"
+                                                className="text-q-muted-text"
                                                 aria-label="Close"
                                             >
-                                                <X size={20} />
+                                                {/* <X size={20} /> */}
                                             </button>
                                         </div>
 
-                                        <h3 className="text-[40px] font-bold leading-tight text-[#1f3556]">
+                                        <h3 className="text-[30px] font-bold leading-tight text-q-heading">
                                             First, enter your email address.
                                         </h3>
-                                        <p className="mt-2 text-base text-[#6f819a]">
+                                        <p className="mt-2 text-base text-q-muted-text">
                                             We will send you a message with a link through which you can set your new password.
                                         </p>
 
                                         <form className="mt-4" onSubmit={handleForgotPasswordSubmit}>
-                                            <label htmlFor="reset-email" className="mb-2 block text-sm font-semibold text-[#405676]">
+                                            <label htmlFor="reset-email" className="mb-2 block text-sm font-semibold text-q-label">
                                                 Your email
                                             </label>
                                             <input
@@ -1182,16 +1349,16 @@ export default function PatientRegisterPage() {
                                                 value={resetEmail}
                                                 onChange={(e) => setResetEmail(e.target.value)}
                                                 placeholder="email@domain.com"
-                                                className="w-full rounded-md border border-[#d6deea] px-4 py-3 text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                                className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 text-q-heading outline-none focus:border-q-accent"
                                             />
 
                                             {resetError ? <p className="mt-3 text-sm text-red-600">{resetError}</p> : null}
-                                            {resetSuccess ? <p className="mt-3 text-sm text-emerald-700">{resetSuccess}</p> : null}
+                                            {resetSuccess ? <p className="mt-3 text-sm text-q-success">{resetSuccess}</p> : null}
 
                                             <button
                                                 type="submit"
                                                 disabled={resetLoading}
-                                                className="mt-4 w-full rounded-md bg-[#14528f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0f467b] disabled:opacity-60"
+                                                className="q-btn-primary mt-4 w-full rounded-md px-4 py-3 text-sm disabled:opacity-60"
                                             >
                                                 {resetLoading ? "Please wait..." : "Reset password"}
                                             </button>
@@ -1201,38 +1368,38 @@ export default function PatientRegisterPage() {
                             </>
                         ) : (
                             <>
-                                <h3 className="text-[32px] font-bold text-[#1f3556]">Log in to your account</h3>
+                                <h3 className="text-[30px] font-bold leading-tight text-q-heading">Log in to your account</h3>
 
                                 <div className="mt-4 space-y-2">
                                     <button
                                         type="button"
-                                        className="w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-sm font-semibold text-[#2b466b]"
+                                        className="w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Continue with Google
                                     </button>
                                     <button
                                         type="button"
-                                        className="w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-sm font-semibold text-[#2b466b]"
+                                        className="w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Continue with Apple
                                     </button>
                                     <button
                                         type="button"
-                                        className="w-full rounded-md border border-[#c8d7e8] bg-white px-3 py-2 text-sm font-semibold text-[#2b466b]"
+                                        className="w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-sm font-semibold text-q-heading hover:bg-q-azure-50"
                                     >
                                         Continue with Microsoft
                                     </button>
                                 </div>
 
-                                <div className="my-4 flex items-center gap-2 text-[#9aabc0]">
-                                    <div className="h-px flex-1 bg-[#dbe4ef]" />
+                                <div className="my-4 flex items-center gap-2 text-q-muted-text">
+                                    <div className="h-px flex-1 bg-q-border" />
                                     <span className="text-xs font-medium">or</span>
-                                    <div className="h-px flex-1 bg-[#dbe4ef]" />
+                                    <div className="h-px flex-1 bg-q-border" />
                                 </div>
 
                                 <form onSubmit={handleLoginSubmit}>
                                     <div>
-                                        <label htmlFor="login-email" className="mb-2 block text-sm font-semibold text-[#405676]">
+                                        <label htmlFor="login-email" className="mb-2 block text-sm font-semibold text-q-label">
                                             Email address
                                         </label>
                                         <input
@@ -1242,19 +1409,19 @@ export default function PatientRegisterPage() {
                                             value={loginEmail}
                                             onChange={(e) => setLoginEmail(e.target.value)}
                                             placeholder="email@domain.com"
-                                            className="w-full rounded-md border border-[#d6deea] px-4 py-3 text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                            className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 text-q-heading outline-none focus:border-q-accent"
                                         />
                                     </div>
 
                                     <div className="relative mt-3">
                                         <div className="mb-2 flex items-center justify-between">
-                                            <label htmlFor="login-password" className="text-sm font-semibold text-[#405676]">
+                                            <label htmlFor="login-password" className="text-sm font-semibold text-q-label">
                                                 Password
                                             </label>
                                             <button
                                                 type="button"
                                                 onClick={() => setShowResetPasswordStep(true)}
-                                                className="text-sm font-semibold text-[#2f7dbd]"
+                                                className="text-sm font-semibold text-q-link"
                                             >
                                                 Reset password
                                             </button>
@@ -1266,25 +1433,25 @@ export default function PatientRegisterPage() {
                                             value={loginPassword}
                                             onChange={(e) => setLoginPassword(e.target.value)}
                                             placeholder="********"
-                                            className="w-full rounded-md border border-[#d6deea] px-4 py-3 pr-11 text-[#1f3556] outline-none focus:border-[#6fa9d5]"
+                                            className="w-full rounded-md border border-q-border-input bg-white px-4 py-3 pr-11 text-q-heading outline-none focus:border-q-accent"
                                         />
                                         <button
                                             type="button"
                                             aria-label={showLoginPassword ? "Hide password" : "Show password"}
                                             onClick={() => setShowLoginPassword((prev) => !prev)}
-                                            className="absolute right-3 top-[38px] text-[#7b95b4]"
+                                            className="absolute right-3 top-[38px] text-q-muted-text"
                                         >
                                             {showLoginPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
                                         </button>
                                     </div>
 
                                     {loginError ? <p className="mt-3 text-sm text-red-600">{loginError}</p> : null}
-                                    {loginSuccess ? <p className="mt-3 text-sm text-emerald-700">{loginSuccess}</p> : null}
+                                    {loginSuccess ? <p className="mt-3 text-sm text-q-success">{loginSuccess}</p> : null}
 
                                     <button
                                         type="submit"
                                         disabled={loginLoading}
-                                        className="mt-4 w-full rounded-md bg-[#14528f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0f467b] disabled:opacity-60"
+                                        className="q-btn-primary mt-4 w-full rounded-md px-4 py-3 text-sm disabled:opacity-60"
                                     >
                                         {loginLoading
                                             ? "Please wait..."

@@ -33,7 +33,7 @@ export function CreateMeetingButton() {
                 type="button"
                 onClick={handleCreateMeeting}
                 disabled={loading}
-                className="inline-block rounded-full bg-[var(--q-primary)] px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[var(--q-primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
+                className="q-btn-primary inline-block rounded-full px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             >
                 {loading ? "Creating..." : "Create Meeting"}
             </button>

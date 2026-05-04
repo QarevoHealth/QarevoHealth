@@ -263,7 +263,7 @@ function FilesMock() {
                 <button
                     type="button"
                     onClick={handleBrowse}
-                    className="mt-4 rounded-full bg-[var(--q-primary)] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[var(--q-primary-hover)]"
+                    className="q-btn-primary mt-4 rounded-full px-6 py-3 text-sm"
                 >
                     Browse file
                 </button>
@@ -298,7 +298,7 @@ function FilesMock() {
                         type="button"
                         onClick={handleUpload}
                         disabled={uploading}
-                        className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--q-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[var(--q-primary-hover)] disabled:opacity-70"
+                        className="q-btn-primary flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm disabled:opacity-70"
                     >
                         {uploading ? (
                             "Uploading..."
@@ -340,7 +340,7 @@ function NoteMock() {
                     <button
                         type="button"
                         onClick={handleSave}
-                        className="rounded-full bg-[var(--q-primary)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[var(--q-primary-hover)]"
+                        className="q-btn-primary rounded-full px-3 py-1.5 text-xs"
                     >
                         Save
                     </button>
