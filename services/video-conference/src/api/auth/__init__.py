@@ -24,4 +24,5 @@ __all__ = [
     "reset_password_router",
     "verify_email_router",
     "verify_email_code_router",
+    "register_doctor_router",
 ]
