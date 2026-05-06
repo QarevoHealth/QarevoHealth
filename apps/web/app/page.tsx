@@ -2,23 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthImageSlider } from "@/components/AuthImageSlider";
+import { AuthLoginRoleMenu } from "@/components/AuthLoginRoleMenu";
 import { CheckCircle, Circle, FirstAidKit, UserCircle } from "phosphor-react";
 
 export default function Home() {
+    const router = useRouter();
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80">
-            <header className="relative z-10 flex items-center justify-between border-b border-q-azure-200 bg-white/95 px-10 py-4 backdrop-blur">
+            <header className="relative z-[100] flex items-center justify-between border-b border-q-azure-200 bg-white/95 px-10 py-4 backdrop-blur">
                 <div className="flex items-center gap-2">
                     <Image src="/logo-symbol.png" alt="Qarevo logo" width={24} height={24} />
                     <span className="text-[30px] font-semibold text-q-heading">Qarevo Health</span>
                 </div>
-                <p className="text-sm font-semibold text-q-heading">
-                    Do you already have an account?{" "}
-                    <Link href="/patient/register?login=1" className="underline hover:text-q-link">
-                        Log in
-                    </Link>
-                </p>
+                <AuthLoginRoleMenu
+                    onSelectPatient={() => router.push("/patient/register?login=1")}
+                    onSelectDoctor={() => router.push("/doctor/login")}
+                />
             </header>
 
             <main className="relative z-10 mx-auto mt-10 w-[95%] max-w-7xl rounded-2xl border border-q-azure-200/90 bg-q-azure-50/40 p-6 shadow-sm sm:mt-14">
@@ -80,7 +81,7 @@ export default function Home() {
                                 <p className="mt-1 text-[11px] leading-4 text-q-muted-text">Book appointments and consult with doctors</p>
                             </Link>
                             <Link
-                                href="/join"
+                                href="/doctor/register"
                                 className="relative rounded-xl border border-q-azure-200 bg-q-azure-50 p-3 text-left shadow-sm transition-colors hover:bg-q-azure-100"
                             >
                                 <span className="absolute right-2 top-2 inline-flex items-center justify-center">

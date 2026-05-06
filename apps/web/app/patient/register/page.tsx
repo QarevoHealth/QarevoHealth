@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AuthImageSlider } from "@/components/AuthImageSlider";
+import { AuthLoginRoleMenu } from "@/components/AuthLoginRoleMenu";
 import { AuthPageHeader } from "@/components/AuthPageHeader";
 import { PasswordValidationHints } from "@/components/PasswordValidationHints";
 import { passwordMeetsPolicy } from "@/lib/password-policy";
-import { ArrowLeft, CaretDown, CheckCircle, Eye, EyeSlash, FirstAidKit, Info, UserCircle, X } from "phosphor-react";
+import { ArrowLeft, CheckCircle, Eye, EyeSlash, Info, X } from "phosphor-react";
 
 const VERIFICATION_RESEND_COOLDOWN_SEC = 30;
 
@@ -22,6 +23,7 @@ type AuthLockoutDetail = {
 };
 
 export default function PatientRegisterPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -38,7 +40,6 @@ export default function PatientRegisterPage() {
     const [profileError, setProfileError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [apiError, setApiError] = useState("");
-    const [showLoginRoleMenu, setShowLoginRoleMenu] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [selectedLoginRole, setSelectedLoginRole] = useState<"patient" | "doctor">("patient");
     const [loginEmail, setLoginEmail] = useState("");
@@ -704,49 +705,14 @@ export default function PatientRegisterPage() {
     return (
         <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-50">
             <AuthPageHeader className="sticky top-0 z-[100] !border-q-azure-200 !bg-white/95 shadow-sm backdrop-blur-md">
-                <div className="relative">
-                    <button
-                        type="button"
-                        onClick={() => setShowLoginRoleMenu((prev) => !prev)}
-                        className="inline-flex items-center gap-1 text-sm font-semibold text-q-heading hover:text-q-link"
-                    >
-                        Do you already have an account? <span className="underline">Log in</span> <CaretDown size={12} />
-                    </button>
-
-                    {showLoginRoleMenu ? (
-                        <div className="absolute right-0 top-[34px] z-30 min-w-[196px] rounded-lg border border-q-azure-200 bg-white p-2 shadow-md">
-                            <p className="px-2 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wide text-q-muted-text">
-                                Continue as:
-                            </p>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSelectedLoginRole("patient");
-                                    resetLoginFormState();
-                                    setShowLoginRoleMenu(false);
-                                    setShowLoginModal(true);
-                                }}
-                                className="flex w-full items-center gap-2.5 rounded-lg border border-q-azure-100 bg-q-azure-50 px-3 py-2.5 text-left text-sm font-medium text-q-heading transition-colors hover:bg-q-azure-100"
-                            >
-                                <UserCircle size={18} weight="regular" className="shrink-0 text-q-azure-600" />
-                                Patient
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSelectedLoginRole("doctor");
-                                    resetLoginFormState();
-                                    setShowLoginRoleMenu(false);
-                                    setShowLoginModal(true);
-                                }}
-                                className="mt-1 flex w-full items-center gap-2.5 rounded-lg border border-q-azure-100 bg-q-azure-50 px-3 py-2.5 text-left text-sm font-medium text-q-heading transition-colors hover:bg-q-azure-100"
-                            >
-                                <FirstAidKit size={18} weight="regular" className="shrink-0 text-q-sky-surge" />
-                                Doctor
-                            </button>
-                        </div>
-                    ) : null}
-                </div>
+                <AuthLoginRoleMenu
+                    onSelectPatient={() => {
+                        setSelectedLoginRole("patient");
+                        resetLoginFormState();
+                        setShowLoginModal(true);
+                    }}
+                    onSelectDoctor={() => router.push("/doctor/login")}
+                />
             </AuthPageHeader>
 
             <main className="relative z-10 mx-auto mt-10 w-[92%] max-w-6xl rounded-2xl border border-q-azure-200 bg-white p-6 shadow-sm sm:mt-14">
@@ -813,7 +779,7 @@ export default function PatientRegisterPage() {
                                     })()}
                                 </div>
                             ) : (
-                            <div className="rounded-xl border border-q-border p-8">
+                            <div className="rounded-xl border border-q-border bg-white p-8 shadow-sm">
                                 <h2 className="text-[30px] font-bold leading-tight text-q-heading">We emailed you the code</h2>
                                 <p className="mt-4 text-base text-q-muted-text">
                                     Check{" "}
@@ -1139,11 +1105,18 @@ export default function PatientRegisterPage() {
             </main>
 
             {showLoginModal ? (
-                <div className="absolute inset-0 z-40 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 backdrop-blur-[8px]" />
-                    <div className="absolute inset-0 bg-q-heading/25" />
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <button
+                        type="button"
+                        className="absolute inset-0 border-0 bg-q-heading/30 backdrop-blur-xl backdrop-saturate-150"
+                        aria-label="Close login"
+                        onClick={() => {
+                            setShowLoginModal(false);
+                            resetLoginFormState();
+                        }}
+                    />
 
-                    <div className="relative w-full max-w-[430px] rounded-2xl border border-q-azure-200 bg-white p-4 shadow-[0_20px_50px_rgba(20,52,93,0.25)]">
+                    <div className="relative z-[1] w-full max-w-[430px] rounded-2xl border border-q-azure-200 bg-white p-4 shadow-[0_20px_50px_rgba(20,52,93,0.25)]">
                         <button
                             type="button"
                             aria-label="Close login modal"
@@ -1151,9 +1124,9 @@ export default function PatientRegisterPage() {
                                 setShowLoginModal(false);
                                 resetLoginFormState();
                             }}
-                            className="absolute right-4 top-4 text-q-muted-text"
+                            className="absolute right-4 top-4 text-q-muted-text hover:text-q-heading"
                         >
-                            {/* <X size={20} /> */}
+                            <X size={20} />
                         </button>
 
                         {showResetPasswordStep ? (
