@@ -43,6 +43,19 @@ def create_access_token(user_id: UUID, email: str | None, role: str | None) -> s
     return jwt.encode(payload, config.JWT_SECRET, algorithm=config.JWT_ALGORITHM)
 
 
+def create_temp_auth_token(user_id: UUID, email: str | None, role: str | None) -> str:
+    """Create short-lived TEMP_AUTH token for pre-MFA/pre-final-auth steps."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=config.TEMP_AUTH_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "role": role,
+        "exp": expire,
+        "type": "TEMP_AUTH",
+    }
+    return jwt.encode(payload, config.TEMP_AUTH_JWT_SECRET, algorithm=config.JWT_ALGORITHM)
+
+
 def create_refresh_token() -> tuple[str, str]:
     """Create refresh token. Returns (raw_token, token_hash)."""
     raw = secrets.token_urlsafe(32)
@@ -55,6 +68,17 @@ def decode_access_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, config.JWT_SECRET, algorithms=[config.JWT_ALGORITHM])
         if payload.get("type") != "access":
+            return None
+        return payload
+    except jwt.PyJWTError:
+        return None
+
+
+def decode_temp_auth_token(token: str) -> dict | None:
+    """Decode and verify TEMP_AUTH token. Returns payload or None."""
+    try:
+        payload = jwt.decode(token, config.TEMP_AUTH_JWT_SECRET, algorithms=[config.JWT_ALGORITHM])
+        if payload.get("type") != "TEMP_AUTH":
             return None
         return payload
     except jwt.PyJWTError:

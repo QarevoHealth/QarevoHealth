@@ -4,6 +4,10 @@ from src.api.auth.forgot_password import router as forgot_password_router
 from src.api.auth.login import router as login_router
 from src.api.auth.login_doctor import router as login_doctor_router
 from src.api.auth.logout import router as logout_router
+from src.api.auth.mfa_verify_email import router as mfa_verify_email_router
+from src.api.auth.mfa_verify_phone import router as mfa_verify_phone_router
+from src.api.auth.mfa_resend_email import router as mfa_resend_email_router
+from src.api.auth.mfa_resend_phone import router as mfa_resend_phone_router
 from src.api.auth.refresh_token import router as refresh_token_router
 from src.api.auth.register_doctor import router as register_doctor_router
 from src.api.auth.resend_password_reset import router as resend_password_reset_router
@@ -19,6 +23,10 @@ __all__ = [
     "login_router",
     "login_doctor_router",
     "logout_router",
+    "mfa_verify_email_router",
+    "mfa_verify_phone_router",
+    "mfa_resend_email_router",
+    "mfa_resend_phone_router",
     "refresh_token_router",
     "register_doctor_router",
     "resend_password_reset_router",
