@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AuthImageSlider } from "@/components/AuthImageSlider";
 import { AuthLoginRoleMenu } from "@/components/AuthLoginRoleMenu";
 import { CheckCircle, Circle, FirstAidKit, UserCircle } from "phosphor-react";
 
 export default function Home() {
     const router = useRouter();
+    const [selectedRole, setSelectedRole] = useState<"patient" | "doctor">("patient");
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80">
             <header className="relative z-[100] flex items-center justify-between border-b border-q-azure-200 bg-white/95 px-10 py-4 backdrop-blur">
@@ -66,37 +68,59 @@ export default function Home() {
                         </h2>
                         <p className="mt-1 text-center text-[12px] text-q-muted-text">How would you like to continue?</p>
 
-                        <div className="mt-4 grid grid-cols-2 gap-2.5">
-                            <Link
-                                href="/patient/register"
-                                className="relative rounded-xl border-2 border-q-accent bg-q-azure-50 p-3 text-left shadow-sm transition-colors hover:bg-q-azure-100"
+                        <div className="mt-4 grid grid-cols-2 gap-2.5" role="radiogroup" aria-label="Choose your role">
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={selectedRole === "patient"}
+                                onClick={() => setSelectedRole("patient")}
+                                className={`relative rounded-xl bg-q-azure-50 p-3 text-left shadow-sm transition-colors hover:bg-q-azure-100 ${
+                                    selectedRole === "patient"
+                                        ? "border-2 border-q-accent"
+                                        : "border border-q-azure-200"
+                                }`}
                             >
-                                <span className="absolute right-2 top-2 inline-flex items-center justify-center">
-                                    <CheckCircle size={14} weight="fill" className="text-q-accent" />
+                                <span className="absolute right-2 top-2 inline-flex items-center justify-center" aria-hidden>
+                                    {selectedRole === "patient" ? (
+                                        <CheckCircle size={14} weight="fill" className="text-q-accent" />
+                                    ) : (
+                                        <Circle size={14} weight="regular" className="text-q-border-strong" />
+                                    )}
                                 </span>
                                 <div className="mb-1 flex h-5 w-5 items-center justify-center rounded-full border border-q-azure-400 text-q-azure-700">
                                     <UserCircle size={12} weight="regular" />
                                 </div>
                                 <p className="text-[14px] font-semibold text-q-heading">Patient</p>
                                 <p className="mt-1 text-[11px] leading-4 text-q-muted-text">Book appointments and consult with doctors</p>
-                            </Link>
-                            <Link
-                                href="/doctor/register"
-                                className="relative rounded-xl border border-q-azure-200 bg-q-azure-50 p-3 text-left shadow-sm transition-colors hover:bg-q-azure-100"
+                            </button>
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={selectedRole === "doctor"}
+                                onClick={() => setSelectedRole("doctor")}
+                                className={`relative rounded-xl bg-q-azure-50 p-3 text-left shadow-sm transition-colors hover:bg-q-azure-100 ${
+                                    selectedRole === "doctor"
+                                        ? "border-2 border-q-accent"
+                                        : "border border-q-azure-200"
+                                }`}
                             >
-                                <span className="absolute right-2 top-2 inline-flex items-center justify-center">
-                                    <Circle size={14} weight="regular" className="text-q-border-strong" />
+                                <span className="absolute right-2 top-2 inline-flex items-center justify-center" aria-hidden>
+                                    {selectedRole === "doctor" ? (
+                                        <CheckCircle size={14} weight="fill" className="text-q-accent" />
+                                    ) : (
+                                        <Circle size={14} weight="regular" className="text-q-border-strong" />
+                                    )}
                                 </span>
                                 <div className="mb-1 flex h-5 w-5 items-center justify-center rounded-full border border-q-azure-300 text-q-heading">
                                     <FirstAidKit size={12} weight="regular" />
                                 </div>
                                 <p className="text-[14px] font-semibold text-q-heading">Doctor</p>
                                 <p className="mt-1 text-[11px] leading-4 text-q-muted-text">Provide care and manage patient consultations</p>
-                            </Link>
+                            </button>
                         </div>
 
                         <Link
-                            href="/patient/register"
+                            href={selectedRole === "patient" ? "/patient/register" : "/doctor/register"}
                             className="q-btn-primary mt-4 inline-flex w-full items-center justify-center rounded-md px-4 py-2 text-[13px]"
                         >
                             Continue

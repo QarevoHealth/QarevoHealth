@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CaretDown, X } from "phosphor-react";
 import { DOCTOR_EXPERTISE_OPTIONS } from "@/lib/doctor/expertise-options";
 
@@ -13,6 +13,7 @@ type Props = {
 export function DoctorExpertiseMultiSelect({ selected, onChange, id }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
+    const listboxId = useId();
 
     useEffect(() => {
         function close(e: MouseEvent) {
@@ -35,13 +36,22 @@ export function DoctorExpertiseMultiSelect({ selected, onChange, id }: Props) {
 
     return (
         <div ref={ref} className="relative">
-            <button
-                type="button"
+            <div
                 id={id}
-                onClick={() => setOpen((o) => !o)}
-                className="flex min-h-[52px] w-full items-start gap-2 rounded-md border border-q-border-input bg-white px-3 py-2.5 text-left outline-none transition-colors focus:border-q-accent focus:ring-1 focus:ring-q-accent/30"
+                role="combobox"
+                tabIndex={0}
                 aria-expanded={open}
                 aria-haspopup="listbox"
+                aria-controls={open && available.length > 0 ? listboxId : undefined}
+                onClick={() => setOpen((o) => !o)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setOpen((o) => !o);
+                    }
+                    if (e.key === "Escape") setOpen(false);
+                }}
+                className="flex min-h-[52px] w-full cursor-pointer items-start gap-2 rounded-md border border-q-border-input bg-white px-3 py-2.5 text-left outline-none transition-colors focus:border-q-accent focus:ring-1 focus:ring-q-accent/30"
             >
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                     {selected.length === 0 ? (
@@ -78,9 +88,10 @@ export function DoctorExpertiseMultiSelect({ selected, onChange, id }: Props) {
                     className={`mt-1 shrink-0 text-q-heading transition-transform ${open ? "rotate-180" : ""}`}
                     aria-hidden
                 />
-            </button>
+            </div>
             {open && available.length > 0 ? (
                 <ul
+                    id={listboxId}
                     className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-52 overflow-auto rounded-md border border-q-border-input bg-white py-1 shadow-[0_12px_32px_rgba(20,52,93,0.12)]"
                     role="listbox"
                 >

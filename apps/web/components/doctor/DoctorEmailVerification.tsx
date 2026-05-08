@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle, Info } from "phosphor-react";
+import { MailProviderIcon } from "@/components/MailProviderIcon";
 import {
     extractEmailVerificationLockout,
     retrySecondsFromPayload,
@@ -13,7 +14,11 @@ const VERIFICATION_RESEND_COOLDOWN_SEC = 30;
 
 type DoctorEmailVerificationProps = {
     email: string;
-    onVerified: () => void;
+    /** e.g. API message after doctor register */
+    registrationMessage?: string;
+    /** Hide resend for this many seconds on first paint (after registration email was sent). */
+    resendLockedSecondsOnMount?: number;
+    onEmailVerified: () => void;
 };
 
 function formatCountdown(seconds: number) {
@@ -28,18 +33,33 @@ function formatCountdown(seconds: number) {
     };
 }
 
-export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerificationProps) {
+export function DoctorEmailVerification({
+    email,
+    registrationMessage,
+    resendLockedSecondsOnMount = 0,
+    onEmailVerified,
+}: DoctorEmailVerificationProps) {
     const [codeDigits, setCodeDigits] = useState<string[]>(Array(6).fill(""));
     const [isVerifying, setIsVerifying] = useState(false);
     const [lastAttemptCode, setLastAttemptCode] = useState("");
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [initialResendGateSeconds, setInitialResendGateSeconds] = useState(
+        () => Math.max(0, resendLockedSecondsOnMount)
+    );
     const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
     const [isResending, setIsResending] = useState(false);
     const [showResendSuccess, setShowResendSuccess] = useState(false);
     const [lockedDetail, setLockedDetail] = useState<AuthLockoutDetail | null>(null);
     const [lockedRetrySeconds, setLockedRetrySeconds] = useState(0);
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+    useEffect(() => {
+        if (initialResendGateSeconds <= 0) return;
+        const t = setInterval(() => {
+            setInitialResendGateSeconds((p) => (p > 0 ? p - 1 : 0));
+        }, 1000);
+        return () => clearInterval(t);
+    }, [initialResendGateSeconds]);
 
     useEffect(() => {
         if (!lockedDetail || lockedRetrySeconds <= 0) return;
@@ -177,8 +197,7 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
                 );
             }
 
-            setSuccess(typeof data.message === "string" ? data.message : "Email verified.");
-            onVerified();
+            onEmailVerified();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Email verification failed");
         } finally {
@@ -196,7 +215,7 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
     }, [codeDigits, isVerifying, lastAttemptCode]);
 
     async function resend() {
-        if (!email || resendCooldownSeconds > 0 || isResending) return;
+        if (!email || initialResendGateSeconds > 0 || resendCooldownSeconds > 0 || isResending) return;
         setIsResending(true);
         setError("");
         setShowResendSuccess(false);
@@ -276,37 +295,39 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
                             "This email has been temporarily blocked due to multiple verification attempts. Please try again later."}
                     </span>
                 </div>
-                <p className="mt-8 text-lg font-semibold text-q-heading">You can request a new code in</p>
-                <div className="mt-4 flex items-start gap-2 md:gap-3">
-                    <div className="w-full min-w-0">
-                        <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center md:px-4">
-                            <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
+                <p className="mt-8 text-left text-base font-semibold text-q-heading sm:text-lg">
+                    You can request a new code in
+                </p>
+                <div className="mt-4 flex items-start justify-start gap-1.5 sm:gap-2">
+                    <div className="flex w-[3.75rem] flex-col items-center sm:w-16">
+                        <div className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-q-azure-200 bg-q-azure-50 px-2 sm:h-16">
+                            <span className="text-2xl font-semibold tabular-nums leading-none text-q-heading sm:text-3xl">
                                 {countdown.hours}
                             </span>
                         </div>
-                        <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
+                        <p className="mt-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-q-heading sm:text-xs">
                             HOURS
                         </p>
                     </div>
-                    <span className="pt-4 text-2xl font-semibold text-q-heading md:pt-7 md:text-[36px]">:</span>
-                    <div className="w-full min-w-0">
-                        <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center md:px-4">
-                            <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
+                    <span className="pt-3 text-2xl font-light text-q-azure-400 sm:pt-4 sm:text-3xl">:</span>
+                    <div className="flex w-[3.75rem] flex-col items-center sm:w-16">
+                        <div className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-q-azure-200 bg-q-azure-50 px-2 sm:h-16">
+                            <span className="text-2xl font-semibold tabular-nums leading-none text-q-heading sm:text-3xl">
                                 {countdown.minutes}
                             </span>
                         </div>
-                        <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
+                        <p className="mt-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-q-heading sm:text-xs">
                             MINUTES
                         </p>
                     </div>
-                    <span className="pt-4 text-2xl font-semibold text-q-heading md:pt-7 md:text-[36px]">:</span>
-                    <div className="w-full min-w-0">
-                        <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center md:px-4">
-                            <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
+                    <span className="pt-3 text-2xl font-light text-q-azure-400 sm:pt-4 sm:text-3xl">:</span>
+                    <div className="flex w-[3.75rem] flex-col items-center sm:w-16">
+                        <div className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-q-azure-200 bg-q-azure-50 px-2 sm:h-16">
+                            <span className="text-2xl font-semibold tabular-nums leading-none text-q-heading sm:text-3xl">
                                 {countdown.seconds}
                             </span>
                         </div>
-                        <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
+                        <p className="mt-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-q-heading sm:text-xs">
                             SECONDS
                         </p>
                     </div>
@@ -322,22 +343,24 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
     }
 
     const digitInputCls =
-        "h-12 w-12 rounded-md border border-q-border-strong bg-white text-center text-lg font-semibold text-q-heading outline-none transition-[border-color,background-color,box-shadow] hover:border-q-accent hover:bg-q-azure-50 hover:shadow-sm focus:border-q-accent focus:ring-2 focus:ring-q-accent/20";
+        "h-12 w-12 rounded-lg border-2 border-q-azure-200 bg-q-azure-50 text-center text-lg font-semibold text-q-heading outline-none transition-[border-color,background-color,box-shadow] [color-scheme:light] placeholder:text-q-muted-text/35 focus:border-q-accent focus:bg-white focus:ring-2 focus:ring-q-accent/20";
 
     return (
-        <div className="overflow-visible rounded-2xl border border-q-azure-200 bg-white p-8 shadow-[0_2px_12px_rgba(20,52,93,0.06)]">
-            <h2 className="text-[30px] font-bold leading-tight text-q-heading">We emailed you the code</h2>
-            <p className="mt-4 text-base text-q-muted-text">
+        <div className="overflow-visible rounded-2xl border border-q-azure-200 bg-white p-6 shadow-[0_2px_12px_rgba(20,52,93,0.06)] sm:p-8 lg:p-10">
+            <h2 className="text-[28px] font-bold leading-tight text-q-heading sm:text-[30px]">We emailed you a code</h2>
+           
+            <p className="mt-4 text-base leading-relaxed text-q-muted-text">
                 We sent an email to <span className="font-semibold text-q-heading">{email}</span>. Enter the code or tap
                 the button in the email to continue.
             </p>
 
-            <p className="mt-5 text-sm font-semibold text-q-label">Confirmation code</p>
-            <div className="mt-2 flex items-center gap-2">
+            <p className="mt-6 text-sm font-semibold text-q-label">Confirmation code</p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-0.5 sm:justify-start">
                 {codeDigits.slice(0, 3).map((char, idx) => (
                     <input
                         key={idx}
                         inputMode="numeric"
+                        autoComplete="one-time-code"
                         aria-label={`Verification code digit ${idx + 1}`}
                         ref={(el) => {
                             inputRefs.current[idx] = el;
@@ -358,6 +381,7 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
                     <input
                         key={idx + 3}
                         inputMode="numeric"
+                        autoComplete="one-time-code"
                         aria-label={`Verification code digit ${idx + 4}`}
                         ref={(el) => {
                             inputRefs.current[idx + 3] = el;
@@ -379,29 +403,37 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
                 If you don&apos;t see the email, check your spam or junk folder.
             </p>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
                 <a
                     href="https://mail.google.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="block w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-center text-sm font-semibold text-q-heading hover:bg-q-azure-50"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-q-azure-200 bg-white px-3 py-2.5 text-center text-xs font-semibold text-q-heading shadow-sm transition-colors hover:bg-q-azure-50 sm:text-sm"
                 >
+                    <MailProviderIcon provider="gmail" />
                     Open Gmail
                 </a>
                 <a
                     href="https://outlook.live.com/mail/0/"
                     target="_blank"
                     rel="noreferrer"
-                    className="block w-full rounded-md border border-q-azure-200 bg-white px-3 py-2 text-center text-sm font-semibold text-q-heading hover:bg-q-azure-50"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-q-azure-200 bg-white px-3 py-2.5 text-center text-xs font-semibold text-q-heading shadow-sm transition-colors hover:bg-q-azure-50 sm:text-sm"
                 >
+                    <MailProviderIcon provider="outlook" />
                     Open Outlook
                 </a>
             </div>
 
-            <div className="my-5 h-px bg-q-border" />
-
-            <div className="mt-1 min-h-[48px]">
-                {showResendSuccess && resendCooldownSeconds > 0 ? (
+            <div className="mt-6 min-h-[48px]">
+                {initialResendGateSeconds > 0 ? (
+                    <div
+                        className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-emerald-200 bg-white px-4 py-3.5 text-sm font-semibold text-emerald-800 shadow-[0_6px_20px_rgba(5,150,105,0.15)]"
+                        role="status"
+                    >
+                        <CheckCircle size={22} weight="fill" className="shrink-0 text-emerald-600" aria-hidden />
+                        <span>Verification email sent</span>
+                    </div>
+                ) : showResendSuccess && resendCooldownSeconds > 0 ? (
                     <div
                         className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-emerald-200 bg-white px-4 py-3.5 text-sm font-semibold text-emerald-800 shadow-[0_6px_20px_rgba(5,150,105,0.15)]"
                         role="status"
@@ -414,7 +446,7 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
                         type="button"
                         disabled={isResending}
                         onClick={() => void resend()}
-                        className="w-full py-2.5 text-sm font-semibold text-q-link transition-opacity hover:underline disabled:cursor-wait disabled:opacity-55"
+                        className="w-full py-2 text-sm font-semibold text-q-link transition-opacity hover:underline disabled:cursor-wait disabled:opacity-55"
                     >
                         Resend code
                     </button>
@@ -422,7 +454,6 @@ export function DoctorEmailVerification({ email, onVerified }: DoctorEmailVerifi
             </div>
 
             {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
-            {success ? <p className="mt-3 text-sm text-q-success">{success}</p> : null}
         </div>
     );
 }

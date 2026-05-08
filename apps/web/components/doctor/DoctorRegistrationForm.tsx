@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Eye, EyeSlash } from "phosphor-react";
 import { PasswordValidationHints } from "@/components/PasswordValidationHints";
 import { DoctorExpertiseMultiSelect } from "@/components/doctor/DoctorExpertiseMultiSelect";
+import type { DoctorRegisterSuccessPayload } from "@/components/doctor/doctor-register-types";
 import { passwordMeetsPolicy } from "@/lib/password-policy";
 
-type FieldKey = "firstName" | "lastName" | "email" | "password" | "terms";
+type FieldKey = "firstName" | "lastName" | "email" | "password" | "consents";
 
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
@@ -18,8 +19,7 @@ function isValidEmail(value: string) {
 export function DoctorRegistrationForm({
     onRegistrationSuccess,
 }: {
-    /** Called after successful signup with the email used (moves flow to email verification). */
-    onRegistrationSuccess?: (email: string) => void;
+    onRegistrationSuccess?: (payload: DoctorRegisterSuccessPayload) => void;
 } = {}) {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -30,7 +30,7 @@ export function DoctorRegistrationForm({
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [consentsAcknowledged, setConsentsAcknowledged] = useState(false);
     const [loading, setLoading] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
     const [formError, setFormError] = useState("");
@@ -45,7 +45,7 @@ export function DoctorRegistrationForm({
         if (!password) e.password = "Password is required.";
         else if (!passwordMeetsPolicy(password))
             e.password = "Password must meet all requirements below.";
-        if (!acceptedTerms) e.terms = "You must accept the terms and privacy policy to continue.";
+        if (!consentsAcknowledged) e.consents = "You must accept the terms and privacy policy to continue.";
         return e;
     }
 
@@ -68,14 +68,54 @@ export function DoctorRegistrationForm({
 
         setLoading(true);
         try {
-            // TODO: POST /api/v1/doctor/register when backend is ready (include expertiseValues, address)
-            await new Promise((r) => setTimeout(r, 400));
+            const res = await fetch("/api/v1/auth/register/doctor", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: email.trim(),
+                    first_name: firstName.trim(),
+                    last_name: lastName.trim(),
+                    password,
+                    consents: {
+                        terms_privacy: consentsAcknowledged,
+                        telehealth: consentsAcknowledged,
+                        marketing: consentsAcknowledged,
+                    },
+                }),
+            });
+
+            const data = (await res.json().catch(() => ({}))) as {
+                user_id?: string;
+                provider_id?: string;
+                message?: string;
+                detail?: string | { msg?: string }[];
+                error?: string;
+            };
+
+            if (!res.ok) {
+                const detailText = Array.isArray(data.detail)
+                    ? data.detail.map((item) => item.msg).filter(Boolean).join(", ")
+                    : data.detail;
+                throw new Error(
+                    typeof data.error === "string"
+                        ? data.error
+                        : typeof detailText === "string"
+                          ? detailText
+                          : "Registration failed"
+                );
+            }
+
             const registeredEmail = email.trim();
             setPassword("");
             setFieldErrors({});
-            onRegistrationSuccess?.(registeredEmail);
-        } catch {
-            setFormError("Something went wrong. Please try again.");
+            onRegistrationSuccess?.({
+                email: registeredEmail,
+                userId: typeof data.user_id === "string" ? data.user_id : undefined,
+                providerId: typeof data.provider_id === "string" ? data.provider_id : undefined,
+                message: typeof data.message === "string" ? data.message : undefined,
+            });
+        } catch (err) {
+            setFormError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -253,11 +293,34 @@ export function DoctorRegistrationForm({
                     <PasswordValidationHints value={password} className="mt-2" />
                 </div>
 
-                <div>
-                    
-                    {fieldErrors.terms ? (
-                        <p className="mt-1.5 text-xs font-medium text-q-danger" role="alert">
-                            {fieldErrors.terms}
+                <div className="space-y-2">
+                    <label className="flex cursor-pointer items-start gap-3 text-sm text-q-muted-text">
+                        <input
+                            type="checkbox"
+                            checked={consentsAcknowledged}
+                            onChange={(e) => {
+                                setConsentsAcknowledged(e.target.checked);
+                                clearFieldError("consents");
+                                if (formError) setFormError("");
+                            }}
+                            aria-invalid={Boolean(fieldErrors.consents)}
+                            className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border-2 border-q-accent bg-white text-q-accent accent-q-accent focus:ring-2 focus:ring-q-accent/30"
+                        />
+                        <span className="leading-snug">
+                            I accept the platform&apos;s{" "}
+                            <Link href="#" className="font-semibold text-q-link hover:underline">
+                                terms and conditions
+                            </Link>{" "}
+                            and{" "}
+                            <Link href="#" className="font-semibold text-q-link hover:underline">
+                                privacy policy
+                            </Link>
+                            .
+                        </span>
+                    </label>
+                    {fieldErrors.consents ? (
+                        <p className="text-xs font-medium text-q-danger" role="alert">
+                            {fieldErrors.consents}
                         </p>
                     ) : null}
                 </div>
@@ -271,33 +334,6 @@ export function DoctorRegistrationForm({
                 >
                     {loading ? "Please wait..." : "Continue"}
                 </button>
-                   <span className="leading-snug">
-                            I accept the platform&apos;s{" "}
-                            <Link href="#" className="font-semibold text-q-link hover:underline">
-                                terms and conditions
-                            </Link>{" "}
-                            and{" "}
-                            <Link href="#" className="font-semibold text-q-link hover:underline">
-                                privacy policy
-                            </Link>
-                            .
-                        </span>
-                        <div>
-                            <label className="flex cursor-pointer items-start gap-3 text-sm text-q-muted-text">
-                        <input
-                            type="checkbox"
-                            checked={acceptedTerms}
-                            onChange={(e) => {
-                                setAcceptedTerms(e.target.checked);
-                                clearFieldError("terms");
-                                if (formError) setFormError("");
-                            }}
-                            aria-invalid={Boolean(fieldErrors.terms)}
-                            className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded border-2 border-q-accent bg-white text-q-accent accent-q-accent focus:ring-2 focus:ring-q-accent/30"
-                        />
-                     
-                    </label>
-                        </div>
             </form>
 
            

@@ -731,46 +731,46 @@ export default function PatientRegisterPage() {
                                                 "This email has been temporarily blocked due to multiple verification attempts. Please try again later."}
                                         </span>
                                     </div>
-                                    <p className="mt-8 text-lg font-semibold text-q-heading md:text-xl">
+                                    <p className="mt-8 text-left text-base font-semibold text-q-heading sm:text-lg">
                                         You can request a new code in
                                     </p>
                                     {(() => {
                                         const countdown = formatCountdown(loginVerificationRetryAfterSeconds);
                                         return (
-                                            <div className="mt-4 flex items-start gap-2 md:gap-3">
-                                                <div className="w-full min-w-0">
-                                                    <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
-                                                        <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
+                                            <div className="mt-4 flex items-start justify-start gap-1.5 sm:gap-2">
+                                                <div className="flex w-[3.75rem] flex-col items-center sm:w-16">
+                                                    <div className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-q-azure-200 bg-q-azure-50 px-2 shadow-[0_2px_0_rgba(0,0,0,0.04)] sm:h-16">
+                                                        <span className="text-2xl font-semibold tabular-nums leading-none text-q-heading sm:text-3xl">
                                                             {countdown.hours}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
+                                                    <p className="mt-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-q-heading sm:text-xs">
                                                         HOURS
                                                     </p>
                                                 </div>
-                                                <span className="pt-4 text-2xl font-semibold text-q-heading md:pt-7 md:text-[36px]">
+                                                <span className="pt-3 text-2xl font-light text-q-azure-400 sm:pt-4 sm:text-3xl">
                                                     :
                                                 </span>
-                                                <div className="w-full min-w-0">
-                                                    <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
-                                                        <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
+                                                <div className="flex w-[3.75rem] flex-col items-center sm:w-16">
+                                                    <div className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-q-azure-200 bg-q-azure-50 px-2 shadow-[0_2px_0_rgba(0,0,0,0.04)] sm:h-16">
+                                                        <span className="text-2xl font-semibold tabular-nums leading-none text-q-heading sm:text-3xl">
                                                             {countdown.minutes}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
+                                                    <p className="mt-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-q-heading sm:text-xs">
                                                         MINUTES
                                                     </p>
                                                 </div>
-                                                <span className="pt-4 text-2xl font-semibold text-q-heading md:pt-7 md:text-[36px]">
+                                                <span className="pt-3 text-2xl font-light text-q-azure-400 sm:pt-4 sm:text-3xl">
                                                     :
                                                 </span>
-                                                <div className="w-full min-w-0">
-                                                    <div className="rounded-xl border border-q-border-strong bg-q-azure-50 px-2 py-3 text-center shadow-[0_2px_0_rgba(0,0,0,0.04)] md:px-4">
-                                                        <span className="text-3xl font-semibold leading-none text-q-heading md:text-[50px]">
+                                                <div className="flex w-[3.75rem] flex-col items-center sm:w-16">
+                                                    <div className="flex h-14 w-full items-center justify-center rounded-xl border-2 border-q-azure-200 bg-q-azure-50 px-2 shadow-[0_2px_0_rgba(0,0,0,0.04)] sm:h-16">
+                                                        <span className="text-2xl font-semibold tabular-nums leading-none text-q-heading sm:text-3xl">
                                                             {countdown.seconds}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-2 text-center text-xs font-semibold tracking-wide text-q-heading md:text-[18px]">
+                                                    <p className="mt-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-q-heading sm:text-xs">
                                                         SECONDS
                                                     </p>
                                                 </div>

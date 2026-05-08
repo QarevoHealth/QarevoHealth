@@ -9,7 +9,7 @@ export default function DoctorLoginPage() {
                 <DoctorLoginHeaderActions />
             </AuthPageHeader>
 
-            <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-[92%] max-w-md items-center justify-center py-10 sm:py-14">
+            <main className="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-[92%] max-w-lg items-center justify-center py-10 sm:py-14">
                 <DoctorLoginForm />
             </main>
         </div>

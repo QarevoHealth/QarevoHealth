@@ -10,21 +10,21 @@ import { AuthLoginRoleMenu } from "@/components/AuthLoginRoleMenu";
 import { DoctorEmailVerification } from "./DoctorEmailVerification";
 import { DoctorLoginForm } from "./DoctorLoginForm";
 import { DoctorRegistrationForm } from "./DoctorRegistrationForm";
+import type { DoctorRegisterSuccessPayload } from "@/components/doctor/doctor-register-types";
 import { DoctorSignupHero } from "./DoctorSignupHero";
+
+const DOCTOR_VERIFICATION_EMAIL_SENT_GATE_SEC = 30;
 
 export function DoctorRegisterFlow() {
     const router = useRouter();
     const [step, setStep] = useState<"form" | "verify" | "done">("form");
     const [verifyEmail, setVerifyEmail] = useState("");
+    const [registeredDoctor, setRegisteredDoctor] = useState<DoctorRegisterSuccessPayload | null>(null);
     const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
 
     return (
         <div
-            className={
-                step === "form"
-                    ? "min-h-screen bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80"
-                    : "min-h-screen bg-white"
-            }
+            className="min-h-screen bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80"
         >
             <AuthPageHeader className="relative z-[100] border-b border-q-azure-200 bg-white shadow-sm backdrop-blur-md">
                 <AuthLoginRoleMenu
@@ -37,15 +37,18 @@ export function DoctorRegisterFlow() {
                 <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-stretch lg:gap-10">
                     {step === "form" ? (
                         <DoctorRegistrationForm
-                            onRegistrationSuccess={(registeredEmail) => {
-                                setVerifyEmail(registeredEmail);
+                            onRegistrationSuccess={(payload) => {
+                                setVerifyEmail(payload.email);
+                                setRegisteredDoctor(payload);
                                 setStep("verify");
                             }}
                         />
                     ) : step === "verify" ? (
                         <DoctorEmailVerification
                             email={verifyEmail}
-                            onVerified={() => setStep("done")}
+                            registrationMessage={registeredDoctor?.message}
+                            resendLockedSecondsOnMount={DOCTOR_VERIFICATION_EMAIL_SENT_GATE_SEC}
+                            onEmailVerified={() => setStep("done")}
                         />
                     ) : (
                         <div className="rounded-2xl border border-q-azure-200 bg-white p-6 shadow-[0_2px_12px_rgba(20,52,93,0.06)] sm:p-8">

@@ -10,7 +10,7 @@ type DoctorSignupHeroProps = {
 
 export function DoctorSignupHero({ imageSrc = DEFAULT_HERO }: DoctorSignupHeroProps) {
     return (
-        <div className="relative min-h-[420px] w-full overflow-hidden rounded-2xl border border-q-azure-200 shadow-sm sm:min-h-[520px] lg:min-h-[620px]">
+        <div className="relative min-h-[420px] w-full overflow-hidden rounded-2xl border border-q-azure-200 bg-q-azure-50/30 shadow-sm sm:min-h-[520px] lg:min-h-[620px]">
             <Image
                 src={imageSrc}
                 alt="Doctor using Qarevo Health on a tablet"
