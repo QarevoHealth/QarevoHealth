@@ -1,6 +1,7 @@
 """Auth API routes - shared for all roles: login, logout, refresh, verify-email, forgot-password, reset-password."""
 
 from src.api.auth.forgot_password import router as forgot_password_router
+from src.api.auth.doctor_2fa_email import router as doctor_2fa_email_router
 from src.api.auth.login import router as login_router
 from src.api.auth.login_doctor import router as doctor_login_router
 from src.api.auth.logout import router as logout_router
@@ -13,6 +14,7 @@ from src.api.auth.verify_email_code import router as verify_email_code_router
 
 __all__ = [
     "forgot_password_router",
+    "doctor_2fa_email_router",
     "login_router",
     "doctor_login_router",
     "logout_router",
