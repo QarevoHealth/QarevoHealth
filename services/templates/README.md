@@ -64,3 +64,19 @@ The tests verify:
 - Correct rendering of templates with sample inputs.
 - Matching output against expected snapshots.
 - Absence of prohibited phrases in the rendered output.
+
+## Previewing Templates in the Browser
+
+For a quick visual demonstration of how templates render with sample data, 
+open `services/templates/preview.html` in any browser.
+
+This file uses the same `render_template` logic as the registry and displays 
+the Consultation Note and Patient Summary in a clean, professional style.
+
+### Steps:
+1. Navigate to `services/templates/preview.html`.
+2. Double-click to open in your default browser.
+3. Review the rendered templates as they would appear in the UI.
+
+This preview is for demonstration only and does not affect the main frontend 
+(`apps/web/app/page.tsx`). It is safe to use for screenshots and sharing progress.
