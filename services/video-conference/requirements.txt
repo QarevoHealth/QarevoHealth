@@ -1,4 +1,4 @@
-fastapi>=0.104.1,<0.115
+fastapi>=0.114.0,<0.115
 uvicorn[standard]>=0.24.0
 pydantic[email]>=2.5.0,<3
 passlib[bcrypt]>=1.7.4
@@ -9,3 +9,5 @@ python-dotenv>=1.0.0
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.0
 alembic>=1.13.0
+wheel>=0.46.2
+setuptools>=80.0.0
