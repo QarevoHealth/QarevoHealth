@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 
-export default function JoinPage() {
+function JoinPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
@@ -61,5 +62,13 @@ export default function JoinPage() {
                 <p className="text-[var(--q-muted)]">Joining meeting...</p>
             </div>
         </AppShell>
+    );
+}
+
+export default function JoinPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <JoinPageContent />
+        </Suspense>
     );
 }
