@@ -12,7 +12,7 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json next.config.ts postcss.config.mjs ./
-COPY next-env.d.ts ./
+# COPY next-env.d.ts ./
 COPY app/ ./app/
 COPY components/ ./components/
 COPY lib/ ./lib/
