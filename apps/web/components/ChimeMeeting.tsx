@@ -47,7 +47,7 @@ export function ChimeMeeting({
         const el = patientVideoRef.current;
         if (!el || !localStream) return;
         el.srcObject = localStream;
-        el.play().catch(() => {});
+        el.play().catch(() => { });
     }, [localStream]);
 
     useEffect(() => {
@@ -88,7 +88,7 @@ export function ChimeMeeting({
                     requestAnimationFrame(() => {
                         if (sessionRef.current && el) {
                             sessionRef.current.audioVideo.bindVideoElement(tileState.tileId!, el);
-                            el.play().catch(() => {});
+                            el.play().catch(() => { });
                         }
                     });
                 }
@@ -142,7 +142,7 @@ export function ChimeMeeting({
                 const vt = stream.getVideoTracks()[0];
                 if (vt) videoTrackRef.current = vt;
                 setLocalStream(stream);
-                av.realtimeMuteLocalAudio(true);
+                av.realtimeMuteLocalAudio();
                 av.start();
             } catch (err) {
                 if (!cancelled) {
@@ -165,16 +165,20 @@ export function ChimeMeeting({
             } catch {
                 // ignore
             }
-            session.destroy().catch(() => {});
+            session.destroy().catch(() => { });
         };
     }, [joinData, onEndCall]);
 
     const handleMuteToggle = useCallback(() => {
         const session = sessionRef.current;
         if (session) {
-            const enabled = session.audioVideo.realtimeIsLocalAudioMuted();
-            session.audioVideo.realtimeMuteLocalAudio(!enabled);
-            setMuted(!enabled);
+            const isMuted = session.audioVideo.realtimeIsLocalAudioMuted();
+            if (isMuted) {
+                session.audioVideo.realtimeUnmuteLocalAudio();
+            } else {
+                session.audioVideo.realtimeMuteLocalAudio();
+            }
+            setMuted(!isMuted);
         }
     }, []);
 
