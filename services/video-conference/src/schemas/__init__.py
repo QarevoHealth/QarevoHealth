@@ -13,13 +13,17 @@ from src.schemas.auth import (
     RegisterResponse,
     ResendPasswordResetRequest,
     ResendPasswordResetResponse,
+    ResendPhoneVerificationRequest,
     ResendVerificationRequest,
     ResendVerificationResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
     VerifyEmailCodeRequest,
     VerifyEmailCodeResponse,
+    VerifyPhoneCodeRequest,
+    VerifyPhoneCodeResponse,
 )
+from src.schemas.doctor import DoctorRegisterRequest, DoctorRegisterResponse
 
 __all__ = [
     "ConsentsInput",
@@ -35,14 +39,15 @@ __all__ = [
     "RegisterResponse",
     "ResendPasswordResetRequest",
     "ResendPasswordResetResponse",
+    "ResendPhoneVerificationRequest",
     "ResendVerificationRequest",
     "ResendVerificationResponse",
     "ResetPasswordRequest",
     "ResetPasswordResponse",
     "VerifyEmailCodeRequest",
     "VerifyEmailCodeResponse",
+    "VerifyPhoneCodeRequest",
+    "VerifyPhoneCodeResponse",
     "DoctorRegisterRequest",
     "DoctorRegisterResponse",
-    "DoctorLoginRequest",
-    "DoctorLoginResponse",
 ]

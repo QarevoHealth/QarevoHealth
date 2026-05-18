@@ -30,6 +30,7 @@ from src.models import (  # noqa: F401 - register models for autogenerate
     Login2FAOtpDB,
     Login2FASessionDB,
     EmailVerificationTokenDB,
+    PhoneVerificationOtpDB,
     PatientDB,
     PatientInsuranceDB,
     PasswordResetTokenDB,

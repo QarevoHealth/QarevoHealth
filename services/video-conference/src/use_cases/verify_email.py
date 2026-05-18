@@ -135,10 +135,16 @@ def execute(
         db.commit()
         raise HTTPException(status_code=400, detail="Verification link has expired")
 
-    # Valid token — activate user
     token_record.used_at = now
     user.email_verified = True
-    user.status = CONFIG_USER.STATUS.ACTIVE
+
+    if user.role == CONFIG_USER.ROLE.PROVIDER:
+        msg = (
+            "Email verified successfully. Enter the SMS code sent to your phone to finish setup."
+        )
+    else:
+        user.status = CONFIG_USER.STATUS.ACTIVE
+        msg = "Email verified successfully."
 
     write_audit_log(
         db,
@@ -151,4 +157,4 @@ def execute(
     )
 
     db.commit()
-    return {"message": "Email verified successfully."}
+    return {"message": msg}

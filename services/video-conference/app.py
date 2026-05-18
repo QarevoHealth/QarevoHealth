@@ -15,6 +15,8 @@ from src.api.auth import (
     reset_password_router,
     verify_email_router,
     verify_email_code_router,
+    verify_phone_code_router,
+    resend_verification_sms_router,
 )
 from src.api.patient import patient_register_router
 from src.api.doctor import doctor_register_router
@@ -36,6 +38,8 @@ app.include_router(patient_register_router)
 app.include_router(doctor_register_router)
 app.include_router(verify_email_router)
 app.include_router(verify_email_code_router)
+app.include_router(verify_phone_code_router)
+app.include_router(resend_verification_sms_router)
 app.include_router(me_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
