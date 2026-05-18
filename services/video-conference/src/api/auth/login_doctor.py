@@ -1,4 +1,4 @@
-"""Doctor login API — username + password."""
+"""Doctor login API - enforces doctor 2FA flow."""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session

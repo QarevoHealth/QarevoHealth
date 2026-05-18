@@ -118,6 +118,12 @@ def execute(email: str, db: Session) -> dict:
             detail="Email already verified or account not pending verification.",
         )
 
+    if user.email_verified:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already verified. Use resend phone verification for a new SMS code.",
+        )
+
     lockout = _check_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
     if lockout:
         raise HTTPException(
