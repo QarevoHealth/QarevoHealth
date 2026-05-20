@@ -53,6 +53,7 @@ app.include_router(resend_password_reset_router)
 app.include_router(consultations_router)
 app.include_router(meetings_router)
 
+
 # Serve join page
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)

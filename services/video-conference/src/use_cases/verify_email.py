@@ -17,10 +17,13 @@ from src.models import (
     TokenType,
     UserDB,
     UserTokenAttemptDB,
-    UserTokenLockoutDB,
 )
 from src.services.audit_service import write_audit_log
-from src.use_cases.resend_verification_email import _create_lockout, _count_attempts
+from src.use_cases.token_lockout import (
+    count_attempts_with_created_tokens,
+    create_or_extend_lockout,
+    get_active_lockout,
+)
 
 
 def _hash_token(token: str) -> str:
@@ -37,17 +40,7 @@ def _record_failed_attempt(db: Session, user_id, token_type: str, attempt_type: 
 
 
 def _check_lockout(db: Session, user_id) -> bool:
-    now = datetime.now(timezone.utc)
-    return (
-        db.query(UserTokenLockoutDB)
-        .filter(
-            UserTokenLockoutDB.user_id == user_id,
-            UserTokenLockoutDB.token_type == TokenType.EMAIL_VERIFICATION,
-            UserTokenLockoutDB.locked_until > now,
-        )
-        .first()
-        is not None
-    )
+    return get_active_lockout(db, user_id, TokenType.EMAIL_VERIFICATION) is not None
 
 
 def execute(
@@ -83,9 +76,15 @@ def execute(
 
     if token_record.invalidated_at is not None:
         _record_failed_attempt(db, user.id, TokenType.EMAIL_VERIFICATION, AttemptType.VERIFY_FAIL)
-        attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
+        attempts = count_attempts_with_created_tokens(
+            db=db,
+            user_id=user.id,
+            token_type=TokenType.EMAIL_VERIFICATION,
+            window_hours=config.RESEND_ATTEMPTS_WINDOW_HOURS,
+            token_model=EmailVerificationTokenDB,
+        )
         if attempts >= config.RESEND_ATTEMPTS_LIMIT:
-            _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
+            create_or_extend_lockout(db, user.id, TokenType.EMAIL_VERIFICATION, config.LOCKOUT_HOURS)
         write_audit_log(
             db,
             event_type=AuditEventType.EMAIL_VERIFICATION_FAILED,
@@ -101,9 +100,15 @@ def execute(
 
     if token_record.used_at is not None:
         _record_failed_attempt(db, user.id, TokenType.EMAIL_VERIFICATION, AttemptType.VERIFY_FAIL)
-        attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
+        attempts = count_attempts_with_created_tokens(
+            db=db,
+            user_id=user.id,
+            token_type=TokenType.EMAIL_VERIFICATION,
+            window_hours=config.RESEND_ATTEMPTS_WINDOW_HOURS,
+            token_model=EmailVerificationTokenDB,
+        )
         if attempts >= config.RESEND_ATTEMPTS_LIMIT:
-            _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
+            create_or_extend_lockout(db, user.id, TokenType.EMAIL_VERIFICATION, config.LOCKOUT_HOURS)
         write_audit_log(
             db,
             event_type=AuditEventType.EMAIL_VERIFICATION_FAILED,
@@ -119,9 +124,15 @@ def execute(
 
     if token_record.expires_at < now:
         _record_failed_attempt(db, user.id, TokenType.EMAIL_VERIFICATION, AttemptType.VERIFY_FAIL)
-        attempts = _count_attempts(db, user.id, TokenType.EMAIL_VERIFICATION)
+        attempts = count_attempts_with_created_tokens(
+            db=db,
+            user_id=user.id,
+            token_type=TokenType.EMAIL_VERIFICATION,
+            window_hours=config.RESEND_ATTEMPTS_WINDOW_HOURS,
+            token_model=EmailVerificationTokenDB,
+        )
         if attempts >= config.RESEND_ATTEMPTS_LIMIT:
-            _create_lockout(db, user.id, TokenType.EMAIL_VERIFICATION)
+            create_or_extend_lockout(db, user.id, TokenType.EMAIL_VERIFICATION, config.LOCKOUT_HOURS)
         write_audit_log(
             db,
             event_type=AuditEventType.EMAIL_VERIFICATION_FAILED,
