@@ -40,6 +40,8 @@ from src.models.user_token_lockout import UserTokenLockoutDB
 from src.models.video_session import VideoSessionDB
 from src.models.video_session_artifact import VideoSessionArtifactDB
 from src.models.video_session_attendee import VideoSessionAttendeeDB
+from src.models.intake import PatientIntakeDB
+from src.models.episode_pack import EpisodePackDB, EpisodePackVersionDB
 
 __all__ = [
     "AuditEventCategory",
@@ -82,6 +84,9 @@ __all__ = [
     "VideoSessionDB",
     "VideoSessionArtifactDB",
     "VideoSessionAttendeeDB",
+    "PatientIntakeDB",
+    "EpisodePackDB",
+    "EpisodePackVersionDB",
     "VideoSessionJoinRequest",
     "VideoSessionJoinResponse",
     "VideoSessionEndRequest",

@@ -30,4 +30,5 @@ class ConsultationDB(Base):
     patient = relationship("PatientDB", back_populates="consultations")
     consultation_providers = relationship("ConsultationProviderDB", back_populates="consultation")
     video_sessions = relationship("VideoSessionDB", back_populates="consultation")
+    intakes = relationship("PatientIntakeDB", back_populates="consultation")
     appointment = relationship("AppointmentDB", back_populates="consultation", uselist=False)

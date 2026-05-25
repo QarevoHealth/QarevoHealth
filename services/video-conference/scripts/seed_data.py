@@ -25,7 +25,7 @@ from src.config import config
 from src.database import SessionLocal
 from src.models import PatientDB, ProviderDB, TenantDB, UserDB
 
-from scripts.seeders import seed_patients, seed_providers, seed_tenants
+from scripts.seeders import seed_patients, seed_providers, seed_tenants, seed_episode_packs
 
 
 def main():
@@ -54,6 +54,9 @@ def main():
 
         print("Seeding patients...")
         seed_patients(db, tenants)
+
+        print("Seeding episode packs...")
+        seed_episode_packs(db)
 
         print("Done! Seed data inserted successfully.")
     except Exception as e:

@@ -40,6 +40,9 @@ from src.models import (  # noqa: F401 - register models for autogenerate
     UserIdentityDB,
     VideoSessionArtifactDB,
     VideoSessionAttendeeDB,
+    PatientIntakeDB,
+    EpisodePackDB,
+    EpisodePackVersionDB,
     VideoSessionDB,
 )
 
