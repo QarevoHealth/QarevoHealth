@@ -26,13 +26,13 @@ export function FeedbackForm({ consultationId, doctorNames }: FeedbackFormProps)
             {/* Logo - Qarevo Health GmbH */}
             <div className="mb-10 flex flex-col items-center gap-1">
                 <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold tracking-tight text-slate-800">
+                    <span className="text-[30px] font-bold tracking-tight text-slate-800">
                         Qarevo
                     </span>
-                    <span className="text-2xl font-bold tracking-tight text-[var(--q-primary)]">
+                    <span className="text-[30px] font-bold tracking-tight text-[var(--q-primary)]">
                         Health
                     </span>
-                    <span className="ml-1 flex h-6 w-6 items-center justify-center rounded bg-[var(--q-primary)] text-xs font-bold text-white">
+                    <span className="q-btn-primary ml-1 flex h-6 w-6 items-center justify-center rounded text-xs font-bold">
                         +
                     </span>
                 </div>
@@ -40,7 +40,7 @@ export function FeedbackForm({ consultationId, doctorNames }: FeedbackFormProps)
             </div>
 
             {/* End message */}
-            <h1 className="mb-8 max-w-lg text-center text-xl font-bold text-[var(--q-text)]">
+            <h1 className="mb-8 max-w-lg text-center text-[30px] font-bold leading-tight text-[var(--q-text)]">
                 Your consultation with {doctorNames} has ended.
             </h1>
 
@@ -49,7 +49,7 @@ export function FeedbackForm({ consultationId, doctorNames }: FeedbackFormProps)
                 <p className="mb-4 text-center text-sm text-[var(--q-muted)]">
                     Give feedback about the session
                 </p>
-                <div className="rounded-2xl border border-[var(--q-card-border)] bg-white/90 p-6 shadow-sm">
+                <div className="rounded-2xl border border-[var(--q-card-border)] bg-white p-6 shadow-sm">
                     <p className="mb-4 text-sm font-medium text-[var(--q-text)]">
                         How was the audio and video?
                     </p>
@@ -78,7 +78,7 @@ export function FeedbackForm({ consultationId, doctorNames }: FeedbackFormProps)
             <button
                 type="button"
                 onClick={() => router.push("/ui-playground")}
-                className="w-full max-w-md rounded-2xl bg-gradient-to-r from-slate-700 to-[var(--q-primary)] px-8 py-4 text-base font-semibold text-white shadow-lg transition-opacity hover:opacity-95"
+                className="q-btn-primary w-full max-w-md rounded-2xl px-8 py-4 text-base"
             >
                 Home Page
             </button>
