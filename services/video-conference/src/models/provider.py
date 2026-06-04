@@ -17,6 +17,7 @@ class ProviderDB(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    username = Column(String(100), nullable=True, unique=True, index=True)
     specialty = Column(String, nullable=True)
     experience_years = Column(Integer, nullable=True)
     license_number = Column(String, nullable=True)

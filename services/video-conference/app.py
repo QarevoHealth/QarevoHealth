@@ -4,12 +4,12 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pathlib import Path
 from src.api.auth import (
+    doctor_2fa_email_router,
     forgot_password_router,
-    login_doctor_router,
     login_router,
+    doctor_login_router,
     logout_router,
     refresh_token_router,
-    register_doctor_router,
     resend_password_reset_router,
     resend_verification_router,
     reset_password_router,
@@ -19,6 +19,7 @@ from src.api.auth import (
     resend_verification_sms_router,
 )
 from src.api.patient import patient_register_router
+from src.api.doctor import doctor_register_router
 from src.api.users import me_router
 from src.api.consultations import router as consultations_router
 from src.api.meetings import router as meetings_router
@@ -34,7 +35,7 @@ app = FastAPI(
 
 # Mount routes
 app.include_router(patient_register_router)
-app.include_router(register_doctor_router)
+app.include_router(doctor_register_router)
 app.include_router(verify_email_router)
 app.include_router(verify_email_code_router)
 app.include_router(verify_phone_code_router)
@@ -42,7 +43,8 @@ app.include_router(resend_verification_sms_router)
 app.include_router(me_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
-app.include_router(login_doctor_router)
+app.include_router(doctor_login_router)
+app.include_router(doctor_2fa_email_router)
 app.include_router(refresh_token_router)
 app.include_router(logout_router)
 app.include_router(forgot_password_router)
@@ -50,6 +52,7 @@ app.include_router(reset_password_router)
 app.include_router(resend_password_reset_router)
 app.include_router(consultations_router)
 app.include_router(meetings_router)
+
 
 # Serve join page
 static_dir = Path(__file__).parent / "static"
