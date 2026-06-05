@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: Production
-FROM python:3.11-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 WORKDIR /app
 
