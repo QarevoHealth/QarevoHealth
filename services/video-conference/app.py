@@ -6,6 +6,7 @@ from pathlib import Path
 from src.api.auth import (
     doctor_2fa_email_router,
     forgot_password_router,
+    login_doctor_router,
     login_router,
     doctor_login_router,
     logout_router,
@@ -35,7 +36,11 @@ app = FastAPI(
 
 # Mount routes
 app.include_router(patient_register_router)
+<<<<<<< HEAD
+app.include_router(register_doctor_router)
+=======
 app.include_router(doctor_register_router)
+>>>>>>> 2f51c0c5323b9bc808a0f76e672c9df1c294c13f
 app.include_router(verify_email_router)
 app.include_router(verify_email_code_router)
 app.include_router(verify_phone_code_router)
@@ -43,8 +48,12 @@ app.include_router(resend_verification_sms_router)
 app.include_router(me_router)
 app.include_router(resend_verification_router)
 app.include_router(login_router)
+<<<<<<< HEAD
+app.include_router(login_doctor_router)
+=======
 app.include_router(doctor_login_router)
 app.include_router(doctor_2fa_email_router)
+>>>>>>> 2f51c0c5323b9bc808a0f76e672c9df1c294c13f
 app.include_router(refresh_token_router)
 app.include_router(logout_router)
 app.include_router(forgot_password_router)
