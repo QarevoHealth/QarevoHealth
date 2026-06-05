@@ -4,7 +4,7 @@ import re
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.schemas.common import ConsentsInput, Gender
 
@@ -12,23 +12,42 @@ from src.schemas.common import ConsentsInput, Gender
 class RegisterRequest(BaseModel):
     """Patient registration request with validation."""
 
-    first_name: str = Field(..., min_length=1, max_length=100, description="First name")
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "patient@example.com",
+                "password": "Secure@123",
+                "consents": {
+                    "terms_privacy": True,
+                    "telehealth": True,
+                    "marketing": False,
+                },
+            }
+        }
+    )
+
+    first_name: str | None = Field(None, max_length=100, description="First name (optional)")
     middle_name: str | None = Field(None, max_length=100, description="Middle name (optional)")
-    last_name: str = Field(..., min_length=1, max_length=100, description="Last name")
+    last_name: str | None = Field(None, max_length=100, description="Last name (optional)")
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=8, max_length=128, description="Password")
-    phone: str = Field(..., min_length=1, max_length=20, description="Phone number")
-    country_code: str = Field(..., min_length=1, max_length=5, description="Country code (e.g. +49)")
-    date_of_birth: date = Field(..., description="Date of birth")
-    gender: str = Field(..., description="Gender: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+    phone: str | None = Field(None, max_length=20, description="Phone number (optional)")
+    country_code: str | None = Field(
+        None, max_length=5, description="Country code (e.g. +49) (optional)"
+    )
+    date_of_birth: date | None = Field(None, description="Date of birth (optional)")
+    gender: str | None = Field(
+        None, description="Gender: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY (optional)"
+    )
     consents: ConsentsInput = Field(..., description="Consent flags (terms_privacy, telehealth mandatory)")
 
     @field_validator("first_name", "last_name")
     @classmethod
-    def name_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Name cannot be empty")
-        return v.strip()
+    def name_normalize(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
     @field_validator("middle_name")
     @classmethod
@@ -37,30 +56,37 @@ class RegisterRequest(BaseModel):
 
     @field_validator("gender")
     @classmethod
-    def gender_valid(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Gender cannot be empty")
+    def gender_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not v.strip():
+            return None
         allowed = {g.value for g in Gender}
-        if v.strip().upper() not in allowed:
+        normalized = v.strip().upper()
+        if normalized not in allowed:
             raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
-        return v.strip().upper()
+        return normalized
 
     @field_validator("phone")
     @classmethod
-    def phone_numeric(cls, v: str) -> str:
+    def phone_numeric(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         stripped = v.strip()
         if not stripped:
-            raise ValueError("Phone number cannot be empty")
+            return None
         if not stripped.isdigit():
             raise ValueError("Phone number must contain digits only")
         return stripped
 
     @field_validator("country_code")
     @classmethod
-    def country_code_valid(cls, v: str) -> str:
+    def country_code_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         stripped = v.strip()
         if not stripped:
-            raise ValueError("Country code cannot be empty")
+            return None
         digits = stripped.lstrip("+")
         if not digits.isdigit():
             raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")
