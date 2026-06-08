@@ -1,6 +1,4 @@
-"""Doctor login use case with email + phone 2FA enforcement."""
-
-from datetime import datetime, timedelta, timezone
+"""Doctor login use case with TEMP_AUTH token issuance."""
 
 from fastapi import HTTPException
 from sqlalchemy import or_
@@ -9,10 +7,10 @@ from sqlalchemy.orm import Session
 from src.config import config
 from src.constants.failure_reasons import FailureReason
 from src.constants.user import CONFIG_USER
-from src.models import AuditEventCategory, AuditEventType, RefreshTokenDB, UserDB
+from src.models import AuditEventCategory, AuditEventType, UserDB
 from src.schemas.auth import DoctorLoginRequest
 from src.services.audit_service import write_audit_log
-from src.services.auth_service import create_access_token, create_refresh_token, verify_password
+from src.services.auth_service import create_temp_auth_token, verify_password
 from src.use_cases.send_verification_email import execute as send_verification_email
 from src.use_cases.send_verification_sms import execute as send_verification_sms
 
@@ -82,7 +80,10 @@ def execute(
             db.commit()
             raise HTTPException(
                 status_code=403,
-                detail="Email verification code sent. Please verify your email first.",
+                detail={
+                    "error_code": "EMAIL_VERIFICATION_PENDING",
+                    "message": "Email verification code sent. Please verify your email first.",
+                },
             )
 
         # Pending doctor: email verified but phone not verified -> send phone OTP via SMS.
@@ -100,24 +101,24 @@ def execute(
             )
 
         # Pending doctor: if both already verified, trigger login-time 2FA challenge.
-        if user.email_verified and user.phone_verified:
-            send_verification_email(
-                user_id=user.id,
-                user_email=(user.email or "").lower().strip(),
-                user_name=user.first_name,
-                db=db,
-            )
-            send_verification_sms(
-                user_id=user.id,
-                country_code=user.country_code or "",
-                phone=user.phone or "",
-                db=db,
-            )
-            db.commit()
-            raise HTTPException(
-                status_code=403,
-                detail="Login 2FA codes sent to your email and phone. Please verify.",
-            )
+        # if user.email_verified and user.phone_verified:
+        #     send_verification_email(
+        #         user_id=user.id,
+        #         user_email=(user.email or "").lower().strip(),
+        #         user_name=user.first_name,
+        #         db=db,
+        #     )
+        #     send_verification_sms(
+        #         user_id=user.id,
+        #         country_code=user.country_code or "",
+        #         phone=user.phone or "",
+        #         db=db,
+        #     )
+        #     db.commit()
+        #     raise HTTPException(
+        #         status_code=403,
+        #         detail="Login 2FA codes sent to your email and phone. Please verify.",
+        #     )
 
     # Active doctor + both verified -> trigger login-time 2FA challenge.
     if (
@@ -138,52 +139,40 @@ def execute(
             db=db,
         )
         db.commit()
-        raise HTTPException(
-            status_code=403,
-            detail="Login 2FA codes sent to your email and phone. Please verify.",
-        )
+        # raise HTTPException(
+        #     status_code=403,
+        #     detail="Login 2FA codes sent to your email and phone. Please verify.",
+        # )
 
-    if not user.email_verified:
-        write_audit_log(
-            db,
-            event_type=AuditEventType.LOGIN_FAILURE,
-            event_category=AuditEventCategory.AUTH,
-            success=False,
-            actor_user_id=user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            failure_reason=FailureReason.EMAIL_NOT_VERIFIED,
-            commit=True,
-        )
-        raise HTTPException(status_code=403, detail="Email not verified. Complete email verification first.")
+    # if not user.email_verified:
+    #     write_audit_log(
+    #         db,
+    #         event_type=AuditEventType.LOGIN_FAILURE,
+    #         event_category=AuditEventCategory.AUTH,
+    #         success=False,
+    #         actor_user_id=user.id,
+    #         ip_address=ip_address,
+    #         user_agent=user_agent,
+    #         failure_reason=FailureReason.EMAIL_NOT_VERIFIED,
+    #         commit=True,
+    #     )
+    #     raise HTTPException(status_code=403, detail="Email not verified. Complete email verification first.")
 
-    if not user.phone_verified:
-        write_audit_log(
-            db,
-            event_type=AuditEventType.LOGIN_FAILURE,
-            event_category=AuditEventCategory.AUTH,
-            success=False,
-            actor_user_id=user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            failure_reason=FailureReason.PHONE_NOT_VERIFIED,
-            commit=True,
-        )
-        raise HTTPException(status_code=403, detail="Phone not verified.")
+    # if not user.phone_verified:
+    #     write_audit_log(
+    #         db,
+    #         event_type=AuditEventType.LOGIN_FAILURE,
+    #         event_category=AuditEventCategory.AUTH,
+    #         success=False,
+    #         actor_user_id=user.id,
+    #         ip_address=ip_address,
+    #         user_agent=user_agent,
+    #         failure_reason=FailureReason.PHONE_NOT_VERIFIED,
+    #         commit=True,
+    #     )
+    #     raise HTTPException(status_code=403, detail="Phone not verified.")
 
-    access_token = create_access_token(user.id, user.email, user.role)
-    raw_refresh, token_hash = create_refresh_token()
-    expires_at = datetime.now(timezone.utc) + timedelta(days=config.REFRESH_TOKEN_EXPIRE_DAYS)
-
-    db.add(
-        RefreshTokenDB(
-            user_id=user.id,
-            token_hash=token_hash,
-            expires_at=expires_at,
-            ip_address=ip_address,
-            user_agent=user_agent,
-        )
-    )
+    temp_token = create_temp_auth_token(user.id, user.email, user.role)
 
     write_audit_log(
         db,
@@ -197,10 +186,9 @@ def execute(
 
     db.commit()
     return {
-        "access_token": access_token,
-        "refresh_token": raw_refresh,
-        "token_type": "bearer",
-        "expires_in": config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        "temp_token": temp_token,
+        "token_type": "TEMP_AUTH",
+        "expires_in": config.TEMP_AUTH_TOKEN_EXPIRE_MINUTES * 60,
         "email_verified": bool(user.email_verified),
         "phone_verified": bool(user.phone_verified),
     }

@@ -143,6 +143,16 @@ class LoginResponse(BaseModel):
     phone_verified: bool = Field(..., description="Whether phone is verified")
 
 
+class TempAuthResponse(BaseModel):
+    """Temporary auth token response returned right after password verification."""
+
+    temp_token: str = Field(..., description="Short-lived TEMP_AUTH JWT")
+    token_type: str = Field("TEMP_AUTH", description="Temporary token type")
+    expires_in: int = Field(..., description="TEMP token expiry in seconds")
+    email_verified: bool = Field(..., description="Whether email is verified")
+    phone_verified: bool = Field(..., description="Whether phone is verified")
+
+
 class DoctorLoginRequest(BaseModel):
     """Doctor login request: identifier can be email, username, or phone."""
 
@@ -176,20 +186,58 @@ class LogoutResponse(BaseModel):
 class DoctorRegisterRequest(BaseModel):
     """Doctor registration request — creates a PROVIDER account."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "first_name": "Riya",
+                    "last_name": "Kuruvilla",
+                    "email": "doctor@example.com",
+                    "password": "Secure@123",
+                    "consents": {
+                        "terms_privacy": True,
+                        "telehealth": True,
+                        "marketing": False,
+                    },
+                },
+                {
+                    "first_name": "Riya",
+                    "middle_name": "M",
+                    "last_name": "Kuruvilla",
+                    "email": "doctor@example.com",
+                    "password": "Secure@123",
+                    "phone": "9876543210",
+                    "country_code": "+91",
+                    "date_of_birth": "1990-05-10",
+                    "gender": "FEMALE",
+                    "specialty": "CARDIOLOGY",
+                    "experience_years": 8,
+                    "license_number": "LIC-12345",
+                    "is_independent": True,
+                    "consents": {
+                        "terms_privacy": True,
+                        "telehealth": True,
+                        "marketing": True,
+                    },
+                },
+            ]
+        }
+    )
+
     first_name: str = Field(..., min_length=1, max_length=100)
     middle_name: str | None = Field(None, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=8, max_length=128)
-    phone: str = Field(..., min_length=1, max_length=20, description="Digits only")
-    country_code: str = Field(..., min_length=1, max_length=5, description="e.g. +1")
-    date_of_birth: date = Field(...)
-    gender: str = Field(..., description="MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+    phone: str | None = Field(None, max_length=20, description="Digits only (optional)")
+    country_code: str | None = Field(None, max_length=5, description="e.g. +1 (optional)")
+    date_of_birth: date | None = Field(None)
+    gender: str | None = Field(None, description="MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY (optional)")
     specialty: str | None = Field(None, max_length=200, description="Medical specialty (optional at registration)")
     experience_years: int | None = Field(None, ge=0, le=80, description="Years of experience (optional)")
     license_number: str | None = Field(None, max_length=100, description="Medical license number (optional at registration)")
     is_independent: bool = Field(False, description="Independent practitioner?")
-    consents: ConsentsInput = Field(..., description="Terms + Telehealth mandatory")
+    consents: ConsentsInput = Field(..., description="Required from frontend. terms_privacy and telehealth must be true")
 
     @field_validator("first_name", "last_name")
     @classmethod
@@ -205,7 +253,11 @@ class DoctorRegisterRequest(BaseModel):
 
     @field_validator("gender")
     @classmethod
-    def gender_valid(cls, v: str) -> str:
+    def gender_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not v.strip():
+            return None
         allowed = {g.value for g in Gender}
         if v.strip().upper() not in allowed:
             raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
@@ -213,16 +265,24 @@ class DoctorRegisterRequest(BaseModel):
 
     @field_validator("phone")
     @classmethod
-    def phone_numeric(cls, v: str) -> str:
+    def phone_numeric(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         stripped = v.strip()
+        if not stripped:
+            return None
         if not stripped.isdigit():
             raise ValueError("Phone number must contain digits only")
         return stripped
 
     @field_validator("country_code")
     @classmethod
-    def country_code_valid(cls, v: str) -> str:
+    def country_code_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         stripped = v.strip()
+        if not stripped:
+            return None
         digits = stripped.lstrip("+")
         if not digits.isdigit():
             raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")

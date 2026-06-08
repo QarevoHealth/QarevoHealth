@@ -27,4 +27,6 @@ class ConsentsInput(BaseModel):
             raise ValueError("Terms of Service and Privacy Policy must be accepted")
         if not self.telehealth:
             raise ValueError("Telehealth consent must be accepted")
+        if not self.marketing:
+              raise ValueError("Marketing communications preference must be accepted")
         return self
