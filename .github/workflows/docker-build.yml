@@ -27,6 +27,8 @@ jobs:
           context: ./services/video-conference
           tags: qarevo-api:${{ steps.vars.outputs.sha }}
           load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build Web image
         uses: docker/build-push-action@v6
@@ -34,6 +36,8 @@ jobs:
           context: ./apps/web
           tags: qarevo-web:${{ steps.vars.outputs.sha }}
           load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner on API image
         uses: aquasecurity/trivy-action@master
@@ -52,3 +56,60 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: 1
           ignore-unfixed: false
+
+      - name: Notify Teams
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            COLOR="00FF00"
+            STATUS="SUCCESS"
+          else
+            COLOR="FF0000"
+            STATUS="FAILED"
+          fi
+
+          curl -H "Content-Type: application/json" \
+          -d '{
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "themeColor": "'"$COLOR"'",
+            "summary": "Qarevo Docker Build",
+            "title": "Qarevo Docker Build - '"$STATUS"'",
+            "sections": [{
+              "facts": [
+                {
+                  "name": "Repository",
+                  "value": "${{ github.repository }}"
+                },
+                {
+                  "name": "Branch",
+                  "value": "${{ github.ref_name }}"
+                },
+                {
+                  "name": "Commit",
+                  "value": "${{ github.sha }}"
+                },
+                {
+                  "name": "Workflow",
+                  "value": "${{ github.workflow }}"
+                },
+                {
+                  "name": "Run Number",
+                  "value": "${{ github.run_number }}"
+                },
+                {
+                  "name": "Status",
+                  "value": "'"$STATUS"'"
+                }
+              ]
+            }],
+            "potentialAction": [{
+              "@type": "OpenUri",
+              "name": "View Workflow Run",
+              "targets": [{
+                "os": "default",
+                "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }]
+            }]
+          }' \
+          "${{ secrets.TEAMS_WEBHOOK_URL }}"
