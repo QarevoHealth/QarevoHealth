@@ -19,7 +19,7 @@ class ConsentsInput(BaseModel):
 
     terms_privacy: bool = Field(..., description="Terms of Service & Privacy Policy - mandatory, must be True")
     telehealth: bool = Field(..., description="Telehealth consent - mandatory, must be True")
-    marketing: bool = Field(False, description="Marketing communications - optional, default False")
+    marketing: bool = Field(..., description="Marketing communications preference - required (true/false)")
 
     @model_validator(mode="after")
     def validate_mandatory_consents(self):

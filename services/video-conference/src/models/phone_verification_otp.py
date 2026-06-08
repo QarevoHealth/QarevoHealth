@@ -1,4 +1,4 @@
-"""Phone verification OTP model."""
+"""6-digit OTP codes for provider phone verification (SMS)."""
 
 import uuid
 
@@ -11,8 +11,6 @@ from src.database import Base
 
 
 class PhoneVerificationOtpDB(Base):
-    """Stores OTPs used to verify user phone numbers."""
-
     __tablename__ = "phone_verification_otps"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
