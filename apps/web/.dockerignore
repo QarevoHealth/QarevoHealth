@@ -16,3 +16,7 @@ logs/
 README.md
 .vscode
 .idea
+coverage/
+storybook-static/
+.nyc_output/
+*.tgz
