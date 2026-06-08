@@ -7,10 +7,12 @@ from src.models.consultation import ConsultationDB
 from src.models.consultation_provider import ConsultationProviderDB
 from src.models.email_verification_otp import EmailVerificationOtpDB
 from src.models.email_verification_token import EmailVerificationTokenDB
-from src.models.phone_verification_otp import PhoneVerificationOtpDB
+from src.models.login_2fa_otp import Login2FAOtpDB
+from src.models.login_2fa_session import Login2FASessionDB
 from src.models.patient import PatientDB
 from src.models.patient_insurance import InsuredStatus, PatientInsuranceDB
 from src.models.password_reset_token import PasswordResetTokenDB
+from src.models.phone_verification_otp import PhoneVerificationOtpDB
 from src.models.provider import ProviderDB
 from src.models.refresh_token import RefreshTokenDB
 from src.models.schemas import (
@@ -65,6 +67,8 @@ __all__ = [
     "JoinedAttendeeDetail",
     "JoinMeetingRequest",
     "JoinMeetingResponse",
+    "Login2FAOtpDB",
+    "Login2FASessionDB",
     "PatientDB",
     "PatientInsuranceDB",
     "PasswordResetTokenDB",
