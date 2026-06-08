@@ -1,14 +1,15 @@
 name: Docker Build
 
 on:
-  pull_request:
   push:
-    branches: [ "main" ]
+    branches:
+      - feature/MVP-010-docker-standardization-clean
 
 jobs:
   docker-build:
     name: Build and Scan
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
