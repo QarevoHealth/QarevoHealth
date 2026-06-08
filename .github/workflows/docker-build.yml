@@ -60,25 +60,6 @@ steps:
       exit-code: 0
       ignore-unfixed: false
 
-  - name: Install jq
-    run: |
-      sudo apt-get update
-      sudo apt-get install -y jq
-
-  - name: Parse Trivy Results
-    id: trivy
-    run: |
-      API_CRITICAL=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-api.json)
-      API_HIGH=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-api.json)
-
-      WEB_CRITICAL=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-web.json)
-      WEB_HIGH=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-web.json)
-
-      echo "api_critical=$API_CRITICAL" >> $GITHUB_OUTPUT
-      echo "api_high=$API_HIGH" >> $GITHUB_OUTPUT
-      echo "web_critical=$WEB_CRITICAL" >> $GITHUB_OUTPUT
-      echo "web_high=$WEB_HIGH" >> $GITHUB_OUTPUT
-
   - name: Upload Trivy Reports
     uses: actions/upload-artifact@v4
     with:
@@ -90,71 +71,45 @@ steps:
   - name: Notify Teams
     if: always()
     run: |
-      TOTAL_CRITICAL=$((${{ steps.trivy.outputs.api_critical }} + ${{ steps.trivy.outputs.web_critical }}))
-      TOTAL_HIGH=$((${{ steps.trivy.outputs.api_high }} + ${{ steps.trivy.outputs.web_high }}))
-
-      if [ "$TOTAL_CRITICAL" -gt 0 ]; then
-        COLOR="FF0000"
-        STATUS="CRITICAL VULNERABILITIES FOUND"
-      elif [ "$TOTAL_HIGH" -gt 0 ]; then
-        COLOR="FFA500"
-        STATUS="HIGH VULNERABILITIES FOUND"
-      else
-        COLOR="00AA00"
-        STATUS="NO HIGH OR CRITICAL VULNERABILITIES"
-      fi
-
       curl -H "Content-Type: application/json" \
-      -d '{
-        "@type": "MessageCard",
-        "@context": "https://schema.org/extensions",
-        "themeColor": "'"$COLOR"'",
-        "summary": "Qarevo Security Scan",
-        "title": "Qarevo Docker Security Scan",
-        "sections": [{
-          "facts": [
-            {
-              "name": "Repository",
-              "value": "${{ github.repository }}"
-            },
-            {
-              "name": "Branch",
-              "value": "${{ github.ref_name }}"
-            },
-            {
-              "name": "Commit",
-              "value": "${{ github.sha }}"
-            },
-            {
-              "name": "Status",
-              "value": "'"$STATUS"'"
-            },
-            {
-              "name": "API Critical",
-              "value": "${{ steps.trivy.outputs.api_critical }}"
-            },
-            {
-              "name": "API High",
-              "value": "${{ steps.trivy.outputs.api_high }}"
-            },
-            {
-              "name": "Web Critical",
-              "value": "${{ steps.trivy.outputs.web_critical }}"
-            },
-            {
-              "name": "Web High",
-              "value": "${{ steps.trivy.outputs.web_high }}"
-            }
-          ]
-        }],
-        "potentialAction": [{
-          "@type": "OpenUri",
-          "name": "View Workflow Run",
-          "targets": [{
-            "os": "default",
-            "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        -d '{
+          "@type": "MessageCard",
+          "@context": "https://schema.org/extensions",
+          "themeColor": "0078D7",
+          "summary": "Qarevo Docker Build",
+          "title": "Qarevo Docker Build",
+          "sections": [{
+            "facts": [
+              {
+                "name": "Repository",
+                "value": "${{ github.repository }}"
+              },
+              {
+                "name": "Branch",
+                "value": "${{ github.ref_name }}"
+              },
+              {
+                "name": "Commit",
+                "value": "${{ github.sha }}"
+              },
+              {
+                "name": "Workflow",
+                "value": "${{ github.workflow }}"
+              },
+              {
+                "name": "Status",
+                "value": "${{ job.status }}"
+              }
+            ]
+          }],
+          "potentialAction": [{
+            "@type": "OpenUri",
+            "name": "View Workflow Run",
+            "targets": [{
+              "os": "default",
+              "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }]
           }]
-        }]
-      }' \
-      "${{ secrets.TEAMS_WEBHOOK_URL }}"
+        }' \
+        "${{ secrets.TEAMS_WEBHOOK_URL }}"
 ```
