@@ -44,7 +44,7 @@ export function DoctorDetailsCard({ doctor, onClose }: DoctorDetailsCardProps) {
                     />
                 </div>
                 <div>
-                    <h2 className="text-lg font-semibold text-[var(--q-text)]">{doctor.name}</h2>
+                    <h2 className="text-[30px] font-semibold leading-tight text-[var(--q-text)]">{doctor.name}</h2>
                     <p className="text-sm text-[var(--q-muted)]">{doctor.title}</p>
                 </div>
             </div>
@@ -72,7 +72,7 @@ export function DoctorDetailsCard({ doctor, onClose }: DoctorDetailsCardProps) {
             {/* Education */}
             {doctor.education.length > 0 && (
             <div className="mt-6 border-t border-[var(--q-card-border)] pt-6">
-                <h3 className="mb-4 text-sm font-semibold text-[var(--q-text)]">Education</h3>
+                <h3 className="mb-4 text-[30px] font-semibold leading-tight text-[var(--q-text)]">Education</h3>
                 <ul className="space-y-5 text-sm text-[var(--q-text)]">
                     {doctor.education.map((edu, i) => (
                         <li key={i} className="flex flex-col gap-2">
@@ -104,7 +104,7 @@ export function DoctorDetailsCard({ doctor, onClose }: DoctorDetailsCardProps) {
                     onClick={handleClose}
                     className="w-full rounded-2xl border border-[var(--q-card-border)] px-6 py-3 text-sm font-medium text-[var(--q-text)] shadow-sm hover:opacity-95"
                     style={{
-                        background: "linear-gradient(270deg, #E7B3B3 3.37%, #EEF6FF 46.15%, #EEF6FF 75.96%)",
+                        background: "linear-gradient(270deg, #E7B3B3 3.37%, #EFF8FF 46.15%, #EFF8FF 75.96%)",
                     }}
                 >
                     Close
