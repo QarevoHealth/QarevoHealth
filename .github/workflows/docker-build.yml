@@ -72,30 +72,72 @@ jobs:
           WEB_CRITICAL=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-web.json)
           WEB_HIGH=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-web.json)
 
+          TOTAL_CRITICAL=$((API_CRITICAL + WEB_CRITICAL))
+
           echo "api_critical=$API_CRITICAL" >> $GITHUB_OUTPUT
           echo "api_high=$API_HIGH" >> $GITHUB_OUTPUT
           echo "web_critical=$WEB_CRITICAL" >> $GITHUB_OUTPUT
           echo "web_high=$WEB_HIGH" >> $GITHUB_OUTPUT
+          echo "total_critical=$TOTAL_CRITICAL" >> $GITHUB_OUTPUT
 
-      - name: Download Trivy HTML Template
+      - name: Generate HTML Report
         run: |
-          curl -L \
-            https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl \
-            -o html.tpl
+          cat > vulnerability-report.html << 'EOF'
+          <html>
+          <head>
+            <title>Qarevo Security Scan Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin:20px; }
+              table { border-collapse: collapse; width:100%; }
+              th, td {
+                border:1px solid #ddd;
+                padding:8px;
+                text-align:left;
+              }
+              th { background:#f2f2f2; }
+              .critical { background:#ffcccc; }
+              .high { background:#fff0cc; }
+            </style>
+          </head>
+          <body>
+          <h1>Qarevo Security Scan Report</h1>
+          <table>
+          <tr>
+            <th>Severity</th>
+            <th>CVE</th>
+            <th>Package</th>
+            <th>Installed Version</th>
+            <th>Fixed Version</th>
+          </tr>
+          EOF
 
-      - name: Merge Trivy Reports
-        run: |
-          jq -s '.' trivy-api.json trivy-web.json > trivy-report.json
+          jq -r '
+            .Results[].Vulnerabilities[]? |
+            select(.Severity=="CRITICAL" or .Severity=="HIGH") |
+            "<tr class=\"" +
+            (if .Severity=="CRITICAL" then "critical" else "high" end) +
+            "\"><td>" + .Severity +
+            "</td><td>" + .VulnerabilityID +
+            "</td><td>" + .PkgName +
+            "</td><td>" + .InstalledVersion +
+            "</td><td>" + (.FixedVersion // "N/A") +
+            "</td></tr>"
+          ' trivy-api.json >> vulnerability-report.html
 
-      - name: Generate Consolidated HTML Report
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/work \
-            aquasec/trivy:latest convert \
-            --format template \
-            --template "@/work/html.tpl" \
-            --output /work/trivy-report.html \
-            /work/trivy-report.json
+          jq -r '
+            .Results[].Vulnerabilities[]? |
+            select(.Severity=="CRITICAL" or .Severity=="HIGH") |
+            "<tr class=\"" +
+            (if .Severity=="CRITICAL" then "critical" else "high" end) +
+            "\"><td>" + .Severity +
+            "</td><td>" + .VulnerabilityID +
+            "</td><td>" + .PkgName +
+            "</td><td>" + .InstalledVersion +
+            "</td><td>" + (.FixedVersion // "N/A") +
+            "</td></tr>"
+          ' trivy-web.json >> vulnerability-report.html
+
+          echo "</table></body></html>" >> vulnerability-report.html
 
       - name: Upload Security Reports
         uses: actions/upload-artifact@v4
@@ -104,56 +146,55 @@ jobs:
           path: |
             trivy-api.json
             trivy-web.json
-            trivy-report.json
-            trivy-report.html
+            vulnerability-report.html
 
       - name: Notify Teams
         if: always()
         run: |
           WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
+          if [ "${{ steps.trivy.outputs.total_critical }}" -gt 0 ]; then
+            COLOR="FF0000"
+            STATUS="FAILED - Critical vulnerabilities detected"
+          else
+            COLOR="00AA00"
+            STATUS="PASSED"
+          fi
+
           curl -H "Content-Type: application/json" \
           -d '{
-            "@type": "MessageCard",
-            "@context": "https://schema.org/extensions",
-            "themeColor": "FF0000",
-            "summary": "Qarevo Security Scan",
-            "title": "Qarevo Security Scan Results",
-            "sections": [{
-              "facts": [
-                {
-                  "name": "Repository",
-                  "value": "${{ github.repository }}"
-                },
-                {
-                  "name": "Branch",
-                  "value": "${{ github.ref_name }}"
-                },
-                {
-                  "name": "API Critical",
-                  "value": "${{ steps.trivy.outputs.api_critical }}"
-                },
-                {
-                  "name": "API High",
-                  "value": "${{ steps.trivy.outputs.api_high }}"
-                },
-                {
-                  "name": "Web Critical",
-                  "value": "${{ steps.trivy.outputs.web_critical }}"
-                },
-                {
-                  "name": "Web High",
-                  "value": "${{ steps.trivy.outputs.web_high }}"
-                }
+            "@type":"MessageCard",
+            "@context":"https://schema.org/extensions",
+            "themeColor":"'"$COLOR"'",
+            "summary":"Qarevo Security Scan",
+            "title":"Qarevo Security Scan Results",
+            "sections":[{
+              "facts":[
+                {"name":"Repository","value":"${{ github.repository }}"},
+                {"name":"Branch","value":"${{ github.ref_name }}"},
+                {"name":"Security Status","value":"'"$STATUS"'"},
+                {"name":"API Critical","value":"${{ steps.trivy.outputs.api_critical }}"},
+                {"name":"API High","value":"${{ steps.trivy.outputs.api_high }}"},
+                {"name":"Web Critical","value":"${{ steps.trivy.outputs.web_critical }}"},
+                {"name":"Web High","value":"${{ steps.trivy.outputs.web_high }}"},
+                {"name":"Security Report","value":"Download artifact: security-reports"}
               ]
             }],
-            "potentialAction": [{
-              "@type": "OpenUri",
-              "name": "View Workflow & Download Reports",
-              "targets": [{
-                "os": "default",
-                "uri": "'"$WORKFLOW_URL"'"
+            "potentialAction":[{
+              "@type":"OpenUri",
+              "name":"View Workflow Run",
+              "targets":[{
+                "os":"default",
+                "uri":"'"$WORKFLOW_URL"'"
               }]
             }]
           }' \
           "${{ secrets.TEAMS_WEBHOOK_URL }}"
+
+      - name: Security Gate
+        if: always()
+        run: |
+          if [ "${{ steps.trivy.outputs.total_critical }}" -gt 0 ]; then
+            echo "Critical vulnerabilities found."
+            exit 1
+          fi
