@@ -138,7 +138,7 @@ jobs:
             vulnerability-report.html
 
       - name: Notify Teams
-        if: always()
+        if: success() && steps.trivy.outcome == 'success'
         run: |
           WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
@@ -180,7 +180,7 @@ jobs:
           "${{ secrets.TEAMS_WEBHOOK_URL }}"
 
       - name: Security Gate
-        if: always()
+        if: success() && steps.trivy.outcome == 'success'
         run: |
           if [ "${{ steps.trivy.outputs.web_critical }}" -gt 0 ]; then
             echo "Critical vulnerabilities found."
