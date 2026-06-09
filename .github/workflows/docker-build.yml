@@ -73,47 +73,90 @@ jobs:
           echo "web_critical=$WEB_CRITICAL" >> $GITHUB_OUTPUT
           echo "web_high=$WEB_HIGH" >> $GITHUB_OUTPUT
 
-          API_TOP=$(jq -r '
-            [.Results[].Vulnerabilities[]? |
+      - name: Generate HTML Report
+        run: |
+          cat > vulnerability-report.html << 'EOF'
+          <html>
+          <head>
+            <title>Qarevo Security Scan Report</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+              }
+              table {
+                border-collapse: collapse;
+                width: 100%;
+              }
+              th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+              }
+              th {
+                background-color: #f2f2f2;
+              }
+              .critical {
+                background-color: #ffcccc;
+              }
+              .high {
+                background-color: #fff0cc;
+              }
+            </style>
+          </head>
+          <body>
+          <h1>Qarevo Security Scan Report</h1>
+
+          <table>
+            <tr>
+              <th>Severity</th>
+              <th>CVE</th>
+              <th>Package</th>
+              <th>Installed Version</th>
+              <th>Fixed Version</th>
+            </tr>
+          EOF
+
+          jq -r '
+            .Results[].Vulnerabilities[]? |
             select(.Severity=="CRITICAL" or .Severity=="HIGH") |
-            "\(.Severity) | \(.VulnerabilityID) | \(.PkgName) | Installed: \(.InstalledVersion) | Fixed: \(.FixedVersion // "N/A")"]
-            | unique
-            | .[0:5]
-            | join("\n")
-          ' trivy-api.json)
+            "<tr class=\"" + (if .Severity=="CRITICAL" then "critical" else "high" end) + "\"><td>" +
+            .Severity + "</td><td>" +
+            .VulnerabilityID + "</td><td>" +
+            .PkgName + "</td><td>" +
+            .InstalledVersion + "</td><td>" +
+            (.FixedVersion // "N/A") +
+            "</td></tr>"
+          ' trivy-api.json >> vulnerability-report.html
 
-          WEB_TOP=$(jq -r '
-            [.Results[].Vulnerabilities[]? |
+          jq -r '
+            .Results[].Vulnerabilities[]? |
             select(.Severity=="CRITICAL" or .Severity=="HIGH") |
-            "\(.Severity) | \(.VulnerabilityID) | \(.PkgName) | Installed: \(.InstalledVersion) | Fixed: \(.FixedVersion // "N/A")"]
-            | unique
-            | .[0:5]
-            | join("\n")
-          ' trivy-web.json)
+            "<tr class=\"" + (if .Severity=="CRITICAL" then "critical" else "high" end) + "\"><td>" +
+            .Severity + "</td><td>" +
+            .VulnerabilityID + "</td><td>" +
+            .PkgName + "</td><td>" +
+            .InstalledVersion + "</td><td>" +
+            (.FixedVersion // "N/A") +
+            "</td></tr>"
+          ' trivy-web.json >> vulnerability-report.html
 
-          {
-            echo "api_top<<EOF"
-            echo "$API_TOP"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+          echo "</table></body></html>" >> vulnerability-report.html
 
-          {
-            echo "web_top<<EOF"
-            echo "$WEB_TOP"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-
-      - name: Upload Trivy Reports
+      - name: Upload Security Reports
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-reports
+          name: security-reports
           path: |
             trivy-api.json
             trivy-web.json
+            vulnerability-report.html
 
       - name: Notify Teams
         if: always()
         run: |
+          WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
           curl -H "Content-Type: application/json" \
           -d '{
             "@type": "MessageCard",
@@ -148,14 +191,14 @@ jobs:
                   "value": "${{ steps.trivy.outputs.web_high }}"
                 }
               ]
-            },
-            {
-              "activityTitle": "Top API Vulnerabilities",
-              "text": "${{ steps.trivy.outputs.api_top }}"
-            },
-            {
-              "activityTitle": "Top Web Vulnerabilities",
-              "text": "${{ steps.trivy.outputs.web_top }}"
+            }],
+            "potentialAction": [{
+              "@type": "OpenUri",
+              "name": "View Workflow Run",
+              "targets": [{
+                "os": "default",
+                "uri": "'"$WORKFLOW_URL"'"
+              }]
             }]
           }' \
           "${{ secrets.TEAMS_WEBHOOK_URL }}"
