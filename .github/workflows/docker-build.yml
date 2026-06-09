@@ -73,6 +73,36 @@ jobs:
           echo "web_critical=$WEB_CRITICAL" >> $GITHUB_OUTPUT
           echo "web_high=$WEB_HIGH" >> $GITHUB_OUTPUT
 
+          API_TOP=$(jq -r '
+            [.Results[].Vulnerabilities[]? |
+            select(.Severity=="CRITICAL" or .Severity=="HIGH") |
+            "\(.Severity) | \(.VulnerabilityID) | \(.PkgName) | Installed: \(.InstalledVersion) | Fixed: \(.FixedVersion // "N/A")"]
+            | unique
+            | .[0:5]
+            | join("\n")
+          ' trivy-api.json)
+
+          WEB_TOP=$(jq -r '
+            [.Results[].Vulnerabilities[]? |
+            select(.Severity=="CRITICAL" or .Severity=="HIGH") |
+            "\(.Severity) | \(.VulnerabilityID) | \(.PkgName) | Installed: \(.InstalledVersion) | Fixed: \(.FixedVersion // "N/A")"]
+            | unique
+            | .[0:5]
+            | join("\n")
+          ' trivy-web.json)
+
+          {
+            echo "api_top<<EOF"
+            echo "$API_TOP"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+          {
+            echo "web_top<<EOF"
+            echo "$WEB_TOP"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
       - name: Upload Trivy Reports
         uses: actions/upload-artifact@v4
         with:
@@ -118,6 +148,14 @@ jobs:
                   "value": "${{ steps.trivy.outputs.web_high }}"
                 }
               ]
+            },
+            {
+              "activityTitle": "Top API Vulnerabilities",
+              "text": "${{ steps.trivy.outputs.api_top }}"
+            },
+            {
+              "activityTitle": "Top Web Vulnerabilities",
+              "text": "${{ steps.trivy.outputs.web_top }}"
             }]
           }' \
           "${{ secrets.TEAMS_WEBHOOK_URL }}"
