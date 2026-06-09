@@ -60,6 +60,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Generate SBOM for Web image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: qarevo-web:${{ steps.vars.outputs.sha }}
+          format: cyclonedx
+          output: sbom-web.cdx.json
+
       - name: Run Trivy scan on Web image
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -129,13 +136,56 @@ jobs:
 
           echo "</table></body></html>" >> vulnerability-report.html
 
+      - name: Generate SBOM HTML Report
+        run: |
+          cat > sbom-report.html << 'EOF'
+          <html>
+          <head>
+            <title>Qarevo Web SBOM Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin:20px; }
+              table { border-collapse: collapse; width:100%; }
+              th, td {
+                border:1px solid #ddd;
+                padding:8px;
+                text-align:left;
+              }
+              th { background:#f2f2f2; }
+            </style>
+          </head>
+          <body>
+          <h1>Qarevo Web SBOM Report</h1>
+          <table>
+          <tr>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Version</th>
+            <th>Package URL</th>
+            <th>Licenses</th>
+          </tr>
+          EOF
+
+          jq -r '
+            .components[]? |
+            "<tr><td>" + (.type // "N/A") +
+            "</td><td>" + (.name // "N/A") +
+            "</td><td>" + (.version // "N/A") +
+            "</td><td>" + (.purl // "N/A") +
+            "</td><td>" + ((.licenses // []) | map(.license.name // .license.id // "N/A") | join(", ")) +
+            "</td></tr>"
+          ' sbom-web.cdx.json >> sbom-report.html
+
+          echo "</table></body></html>" >> sbom-report.html
+
       - name: Upload Security Reports
         uses: actions/upload-artifact@v4
         with:
           name: web-security-reports
           path: |
             trivy-web.json
+            sbom-web.cdx.json
             vulnerability-report.html
+            sbom-report.html
 
       - name: Notify Teams
         if: success() && steps.trivy.outcome == 'success'
@@ -165,7 +215,7 @@ jobs:
                 {"name":"Security Status","value":"'"$STATUS"'"},
                 {"name":"Web Critical","value":"${{ steps.trivy.outputs.web_critical }}"},
                 {"name":"Web High","value":"${{ steps.trivy.outputs.web_high }}"},
-                {"name":"Security Report","value":"Download artifact: web-security-reports"}
+                {"name":"Reports","value":"Download artifact: web-security-reports"}
               ]
             }],
             "potentialAction":[{
