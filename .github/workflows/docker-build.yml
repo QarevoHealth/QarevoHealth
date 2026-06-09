@@ -28,6 +28,8 @@ jobs:
           context: ./services/video-conference
           tags: qarevo-api:${{ steps.vars.outputs.sha }}
           load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build Web image
         uses: docker/build-push-action@v6
@@ -35,6 +37,8 @@ jobs:
           context: ./apps/web
           tags: qarevo-web:${{ steps.vars.outputs.sha }}
           load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run Trivy scan on API image
         uses: aquasecurity/trivy-action@master
@@ -73,75 +77,31 @@ jobs:
           echo "web_critical=$WEB_CRITICAL" >> $GITHUB_OUTPUT
           echo "web_high=$WEB_HIGH" >> $GITHUB_OUTPUT
 
-      - name: Generate HTML Report
+      - name: Download Trivy HTML Template
         run: |
-          cat > vulnerability-report.html << 'EOF'
-          <html>
-          <head>
-            <title>Qarevo Security Scan Report</title>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                margin: 20px;
-              }
-              table {
-                border-collapse: collapse;
-                width: 100%;
-              }
-              th, td {
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-              }
-              th {
-                background-color: #f2f2f2;
-              }
-              .critical {
-                background-color: #ffcccc;
-              }
-              .high {
-                background-color: #fff0cc;
-              }
-            </style>
-          </head>
-          <body>
-          <h1>Qarevo Security Scan Report</h1>
+          curl -L \
+            https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl \
+            -o html.tpl
 
-          <table>
-            <tr>
-              <th>Severity</th>
-              <th>CVE</th>
-              <th>Package</th>
-              <th>Installed Version</th>
-              <th>Fixed Version</th>
-            </tr>
-          EOF
+      - name: Generate API HTML Report
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            aquasec/trivy:latest image \
+            --format template \
+            --template "@/workspace/html.tpl" \
+            -o /workspace/trivy-api-report.html \
+            qarevo-api:${{ steps.vars.outputs.sha }}
 
-          jq -r '
-            .Results[].Vulnerabilities[]? |
-            select(.Severity=="CRITICAL" or .Severity=="HIGH") |
-            "<tr class=\"" + (if .Severity=="CRITICAL" then "critical" else "high" end) + "\"><td>" +
-            .Severity + "</td><td>" +
-            .VulnerabilityID + "</td><td>" +
-            .PkgName + "</td><td>" +
-            .InstalledVersion + "</td><td>" +
-            (.FixedVersion // "N/A") +
-            "</td></tr>"
-          ' trivy-api.json >> vulnerability-report.html
-
-          jq -r '
-            .Results[].Vulnerabilities[]? |
-            select(.Severity=="CRITICAL" or .Severity=="HIGH") |
-            "<tr class=\"" + (if .Severity=="CRITICAL" then "critical" else "high" end) + "\"><td>" +
-            .Severity + "</td><td>" +
-            .VulnerabilityID + "</td><td>" +
-            .PkgName + "</td><td>" +
-            .InstalledVersion + "</td><td>" +
-            (.FixedVersion // "N/A") +
-            "</td></tr>"
-          ' trivy-web.json >> vulnerability-report.html
-
-          echo "</table></body></html>" >> vulnerability-report.html
+      - name: Generate Web HTML Report
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            aquasec/trivy:latest image \
+            --format template \
+            --template "@/workspace/html.tpl" \
+            -o /workspace/trivy-web-report.html \
+            qarevo-web:${{ steps.vars.outputs.sha }}
 
       - name: Upload Security Reports
         uses: actions/upload-artifact@v4
@@ -150,7 +110,8 @@ jobs:
           path: |
             trivy-api.json
             trivy-web.json
-            vulnerability-report.html
+            trivy-api-report.html
+            trivy-web-report.html
 
       - name: Notify Teams
         if: always()
@@ -194,7 +155,7 @@ jobs:
             }],
             "potentialAction": [{
               "@type": "OpenUri",
-              "name": "View Workflow Run",
+              "name": "View Workflow & Reports",
               "targets": [{
                 "os": "default",
                 "uri": "'"$WORKFLOW_URL"'"
