@@ -41,7 +41,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy scan on API image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: qarevo-api:${{ steps.vars.outputs.sha }}
           format: json
@@ -50,7 +50,7 @@ jobs:
           exit-code: 0
 
       - name: Run Trivy scan on Web image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: qarevo-web:${{ steps.vars.outputs.sha }}
           format: json
