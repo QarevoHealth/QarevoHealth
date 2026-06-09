@@ -41,7 +41,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy scan on API image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: qarevo-api:${{ steps.vars.outputs.sha }}
           format: json
@@ -50,7 +50,7 @@ jobs:
           exit-code: 0
 
       - name: Run Trivy scan on Web image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: qarevo-web:${{ steps.vars.outputs.sha }}
           format: json
@@ -83,25 +83,19 @@ jobs:
             https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl \
             -o html.tpl
 
-      - name: Generate API HTML Report
+      - name: Merge Trivy Reports
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            aquasec/trivy:latest image \
-            --format template \
-            --template "@/workspace/html.tpl" \
-            -o /workspace/trivy-api-report.html \
-            qarevo-api:${{ steps.vars.outputs.sha }}
+          jq -s '.' trivy-api.json trivy-web.json > trivy-report.json
 
-      - name: Generate Web HTML Report
+      - name: Generate Consolidated HTML Report
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            aquasec/trivy:latest image \
+            -v ${{ github.workspace }}:/work \
+            aquasec/trivy:latest convert \
             --format template \
-            --template "@/workspace/html.tpl" \
-            -o /workspace/trivy-web-report.html \
-            qarevo-web:${{ steps.vars.outputs.sha }}
+            --template "@/work/html.tpl" \
+            --output /work/trivy-report.html \
+            /work/trivy-report.json
 
       - name: Upload Security Reports
         uses: actions/upload-artifact@v4
@@ -110,8 +104,8 @@ jobs:
           path: |
             trivy-api.json
             trivy-web.json
-            trivy-api-report.html
-            trivy-web-report.html
+            trivy-report.json
+            trivy-report.html
 
       - name: Notify Teams
         if: always()
@@ -155,7 +149,7 @@ jobs:
             }],
             "potentialAction": [{
               "@type": "OpenUri",
-              "name": "View Workflow & Reports",
+              "name": "View Workflow & Download Reports",
               "targets": [{
                 "os": "default",
                 "uri": "'"$WORKFLOW_URL"'"
