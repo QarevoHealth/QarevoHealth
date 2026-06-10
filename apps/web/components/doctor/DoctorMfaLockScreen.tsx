@@ -63,7 +63,7 @@ export function DoctorMfaLockScreen({ lock, onBack }: DoctorMfaLockScreenProps) 
     ];
 
     return (
-        <div className="fixed inset-0 z-[500] min-h-screen overflow-y-auto bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80">
+        <div className="fixed inset-0 z-[500] min-h-screen overflow-y-auto bg-[var(--color-primary-50)]">
             <AuthPageHeader className="relative z-10 border-b border-q-azure-200 bg-white/95 shadow-sm backdrop-blur-md">
                 <DoctorLoginHeaderActions />
             </AuthPageHeader>

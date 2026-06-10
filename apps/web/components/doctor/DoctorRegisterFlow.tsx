@@ -24,7 +24,7 @@ export function DoctorRegisterFlow() {
 
     return (
         <div
-            className="min-h-screen bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80"
+            className="min-h-screen bg-[var(--color-primary-50)]"
         >
             <AuthPageHeader className="relative z-[100] border-b border-q-azure-200 bg-white shadow-sm backdrop-blur-md">
                 <AuthLoginRoleMenu

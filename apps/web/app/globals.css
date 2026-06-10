@@ -5,16 +5,50 @@
   --font-sans-fallback is used if the variable is ever missing; otherwise it continues the stack after Next’s value.
 */
 :root {
-  --background: #eff8ff;
+  --color-primary-50: #e6eef2;
+  --background: var(--color-primary-50);
   --foreground: #171717;
   --font-sans-fallback: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+
+  /* Primary CTA gradient stops (used by .q-btn-primary) */
+  --q-btn-primary-top: #1e70cc;
+  --q-btn-primary-mid: #175cd3;
+  --q-btn-primary-bottom: #19407c;
+  --q-btn-primary-border: #0d2847;
+  --q-azure-400: #53a8f4;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-public-sans), var(--font-sans-fallback);
+
+  /* Brilliant Azure ramp — Tailwind utilities: bg-q-azure-50, text-q-azure-700, border-q-azure-200, etc. */
+  --color-q-azure-50: #eff8ff;
+  --color-q-azure-100: #d1e9ff;
+  --color-q-azure-200: #b2ddff;
+  --color-q-azure-300: #84c5fb;
+  --color-q-azure-400: #53a8f4;
+  --color-q-azure-500: #348cea;
+  --color-q-azure-600: #1e70cc;
+  --color-q-azure-700: #175cd3;
+  --color-q-azure-800: #1849a9;
+  --color-q-azure-900: #19407c;
+
+  /* Brand semantic tokens — Tailwind utilities: text-q-heading, bg-q-danger-bg, etc. */
+  --color-q-heading: #04354d;
+  --color-q-muted-text: #647585;
+  --color-q-text: #0e151a;
+  --color-q-link: #348cea;
+  --color-q-label: #04354d;
+  --color-q-accent: #20b5df;
+  --color-q-sky-surge: #20b5df;
+  --color-q-border: #e2eaef;
+  --color-q-border-input: #c9d5e5;
+  --color-q-success: #047857;
+  --color-q-danger: #b42318;
+  --color-q-danger-bg: #fef3f2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,7 +66,7 @@ body {
 
 body {
   margin: 0;
-  background: transparent; /* wichtig: AppShell kontrolliert den Hintergrund */
+  background: var(--color-primary-50);
   color: var(--q-text, #0f172a);
 }
 

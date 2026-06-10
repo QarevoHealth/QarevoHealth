@@ -142,7 +142,7 @@ export function ChimeMeeting({
                 const vt = stream.getVideoTracks()[0];
                 if (vt) videoTrackRef.current = vt;
                 setLocalStream(stream);
-                av.realtimeMuteLocalAudio(true);
+                av.realtimeMuteLocalAudio();
                 av.start();
             } catch (err) {
                 if (!cancelled) {
@@ -173,7 +173,7 @@ export function ChimeMeeting({
         const session = sessionRef.current;
         if (session) {
             const enabled = session.audioVideo.realtimeIsLocalAudioMuted();
-            session.audioVideo.realtimeMuteLocalAudio(!enabled);
+            session.audioVideo.realtimeMuteLocalAudio();
             setMuted(!enabled);
         }
     }, []);

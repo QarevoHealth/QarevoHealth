@@ -42,7 +42,7 @@ export function AuthImageSlider() {
                             aria-label={`Go to slide ${index + 1}`}
                             onClick={() => setActiveIndex(index)}
                             className={`h-[6px] rounded-full transition-all ${
-                                activeIndex === index ? "w-7 bg-[#2f7dbd]" : "w-3 bg-[#c8d9eb]"
+                                activeIndex === index ? "w-7 bg-q-azure-600" : "w-3 bg-q-azure-200"
                             }`}
                         />
                     ))}
