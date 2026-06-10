@@ -1,12 +1,66 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: qarevo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d qarevo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  migrate:
+    build:
+      context: ./services/video-conference
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/qarevo_db
+      DEBUG: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic upgrade head
+    restart: "no"
+
+  seed:
+    build:
+      context: ./services/video-conference
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/qarevo_db
+      DEBUG: "false"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command: python scripts/seed_data.py
+    profiles:
+      - seed
+    restart: "no"
+
   api:
     build:
       context: ./services/video-conference
       dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/qarevo_db
+      APP_JOIN_URL: http://localhost:3000/join
+      HOST: 0.0.0.0
+      PORT: 8000
+      DEBUG: "true"
+      LOG_LEVEL: INFO
     ports:
       - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
@@ -18,23 +72,15 @@ services:
     build:
       context: ./apps/web
       dockerfile: Dockerfile
+    environment:
+      API_BASE_URL: http://api:8000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NEXT_PUBLIC_USE_MOCK_DATA: "false"
     ports:
       - "3000:3000"
     depends_on:
       api:
         condition: service_healthy
-
-  db:
-    image: postgres:18-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: qarevo_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
 
 volumes:
   pgdata:
