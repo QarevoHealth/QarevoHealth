@@ -1,12 +1,19 @@
 name: Docker Build - Web
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/MVP-010-docker-standardization-clean
+      - main
     paths:
       - "apps/web/**"
       - ".github/workflows/docker-build-web.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/docker-build-web.yml"
+  workflow_dispatch:
 
 jobs:
   docker-build-web:
@@ -17,19 +24,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: latest
+          version: 10.33.4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
 
       - name: Install frontend dependencies
         working-directory: apps/web
-        run: pnpm install --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Lint
         working-directory: apps/web
@@ -188,8 +197,15 @@ jobs:
             sbom-report.html
 
       - name: Notify Teams
-        if: success() && steps.trivy.outcome == 'success'
+        if: success() && steps.trivy.outcome == 'success' && (github.event_name == 'push' || steps.trivy.outputs.web_critical != '0')
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
+          if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+            echo "TEAMS_WEBHOOK_URL is not set; skipping notification."
+            exit 0
+          fi
+
           WORKFLOW_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           if [ "${{ steps.trivy.outputs.web_critical }}" -gt 0 ]; then
@@ -227,7 +243,7 @@ jobs:
               }]
             }]
           }' \
-          "${{ secrets.TEAMS_WEBHOOK_URL }}"
+          "$TEAMS_WEBHOOK_URL"
 
       - name: Security Gate
         if: success() && steps.trivy.outcome == 'success'

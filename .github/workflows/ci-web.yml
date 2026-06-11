@@ -1,0 +1,47 @@
+name: CI - Web
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/ci-web.yml"
+  workflow_dispatch:
+
+jobs:
+  web-ci:
+    name: Web Lint, Type Check and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Lint
+        working-directory: apps/web
+        run: pnpm lint
+
+      - name: Type check
+        working-directory: apps/web
+        run: pnpm tsc --noEmit
+
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build

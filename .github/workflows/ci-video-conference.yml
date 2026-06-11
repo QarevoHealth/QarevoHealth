@@ -1,0 +1,42 @@
+name: CI - Video Conference
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "services/video-conference/**"
+      - ".github/workflows/ci-video-conference.yml"
+  workflow_dispatch:
+
+jobs:
+  backend-ci:
+    name: Backend Lint, Type Check and Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        working-directory: services/video-conference
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff mypy pytest pytest-cov
+
+      - name: Lint with ruff
+        working-directory: services/video-conference
+        run: ruff check .
+
+      - name: Type check with mypy
+        working-directory: services/video-conference
+        run: mypy .
+
+      - name: Run tests
+        working-directory: services/video-conference
+        run: pytest --cov=. --cov-fail-under=50
