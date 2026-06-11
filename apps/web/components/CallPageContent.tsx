@@ -35,14 +35,18 @@ export function CallPageContent({
 
     useEffect(() => {
         const stored = typeof window !== "undefined" && sessionStorage.getItem(`chime-join-${consultationId}`);
-        if (stored) {
-            try {
-                setJoinData(JSON.parse(stored) as ChimeJoinResponse);
-            } catch {
-                // ignore
-            }
+        if (!stored || joinData) return;
+
+        try {
+            const parsed = JSON.parse(stored) as ChimeJoinResponse;
+            const timeoutId = window.setTimeout(() => {
+                setJoinData(parsed);
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
+        } catch {
+            // ignore
         }
-    }, [consultationId]);
+    }, [consultationId, joinData]);
 
     const handleEndCall = useCallback(() => {
         router.push(`/consultation/${consultationId}/feedback`);

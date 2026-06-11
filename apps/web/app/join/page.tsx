@@ -17,8 +17,10 @@ function JoinPageContent() {
         const attendeeId = searchParams.get("attendeeId");
 
         if (!meetingId || !joinToken || !attendeeId) {
-            setError("Invalid join link: missing meetingId, joinToken, or attendeeId");
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setError("Invalid join link: missing meetingId, joinToken, or attendeeId");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
 
         const run = async () => {

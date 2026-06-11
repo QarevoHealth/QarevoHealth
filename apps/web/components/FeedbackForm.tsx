@@ -17,7 +17,7 @@ type FeedbackFormProps = {
     doctorNames: string;
 };
 
-export function FeedbackForm({ consultationId, doctorNames }: FeedbackFormProps) {
+export function FeedbackForm({ doctorNames }: FeedbackFormProps) {
     const router = useRouter();
     const [rating, setRating] = useState<number | null>(null);
 

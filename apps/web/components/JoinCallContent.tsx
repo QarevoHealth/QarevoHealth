@@ -13,16 +13,23 @@ export function JoinCallContent() {
 
     useEffect(() => {
         const stored = typeof window !== "undefined" && sessionStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            try {
-                setJoinData(JSON.parse(stored) as ChimeJoinResponse);
-            } catch {
-                router.replace("/");
-            }
-        } else {
+        if (!stored) {
+            router.replace("/");
+            return;
+        }
+
+        if (joinData) return;
+
+        try {
+            const parsed = JSON.parse(stored) as ChimeJoinResponse;
+            const timeoutId = window.setTimeout(() => {
+                setJoinData(parsed);
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
+        } catch {
             router.replace("/");
         }
-    }, [router]);
+    }, [joinData, router]);
 
     const handleEndCall = () => {
         if (typeof window !== "undefined") {

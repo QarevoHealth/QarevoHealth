@@ -29,11 +29,23 @@ export function WaitingCallCard({ doctorName, videoPreviewSrc = "/mock/doctor3.p
 
     const [patientWaitUrl, setPatientWaitUrl] = useState("");
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            setDoctorJoinUrl(`${window.location.origin}/consultation/${consultationId}/waiting/user/${DEFAULT_PROVIDER_USER_ID}`);
-            setPatientWaitUrl(`${window.location.origin}/consultation/${consultationId}/waiting`);
-        }
-    }, [consultationId]);
+        if (typeof window === "undefined") return;
+
+        const newDoctorJoinUrl = `${window.location.origin}/consultation/${consultationId}/waiting/user/${DEFAULT_PROVIDER_USER_ID}`;
+        const newPatientWaitUrl = `${window.location.origin}/consultation/${consultationId}/waiting`;
+
+        const timeoutId = window.setTimeout(() => {
+            if (doctorJoinUrl !== newDoctorJoinUrl) {
+                setDoctorJoinUrl(newDoctorJoinUrl);
+            }
+
+            if (patientWaitUrl !== newPatientWaitUrl) {
+                setPatientWaitUrl(newPatientWaitUrl);
+            }
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [consultationId, doctorJoinUrl, patientWaitUrl]);
 
     useEffect(() => {
         const video = videoRef.current;

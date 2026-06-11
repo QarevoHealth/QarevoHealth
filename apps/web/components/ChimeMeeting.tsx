@@ -41,7 +41,10 @@ export function ChimeMeeting({
     const localStreamRef = useRef<MediaStream | null>(null);
     const videoTrackRef = useRef<MediaStreamTrack | null>(null);
     const onEndCallRef = useRef(onEndCall);
-    onEndCallRef.current = onEndCall;
+
+    useEffect(() => {
+        onEndCallRef.current = onEndCall;
+    }, [onEndCall]);
 
     useEffect(() => {
         const el = patientVideoRef.current;
@@ -52,8 +55,10 @@ export function ChimeMeeting({
 
     useEffect(() => {
         if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-            setError("Camera and microphone access is required. Please use a supported browser.");
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setError("Camera and microphone access is required. Please use a supported browser.");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
         let cancelled = false;
         const logger = new ConsoleLogger("ChimeSDK", LogLevel.WARN);
@@ -64,8 +69,10 @@ export function ChimeMeeting({
             const eventController = new DefaultEventController(config, logger);
             session = new DefaultMeetingSession(config, logger, deviceController, eventController);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to initialize meeting");
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setError(err instanceof Error ? err.message : "Failed to initialize meeting");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
         sessionRef.current = session;
 
