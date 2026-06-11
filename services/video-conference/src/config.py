@@ -29,6 +29,8 @@ class Config:
     )
     EMAIL_VERIFICATION_EXPIRY_HOURS: int = int(os.getenv("EMAIL_VERIFICATION_EXPIRY_HOURS", "24"))
     EMAIL_VERIFICATION_OTP_EXPIRY_MINUTES: int = int(os.getenv("EMAIL_VERIFICATION_OTP_EXPIRY_MINUTES", "10"))
+    PHONE_VERIFICATION_OTP_EXPIRY_MINUTES: int = int(os.getenv("PHONE_VERIFICATION_OTP_EXPIRY_MINUTES", "10"))
+    AWS_SNS_REGION: str = os.getenv("AWS_SNS_REGION", os.getenv("AWS_SES_REGION", "us-east-1"))
     RESEND_ATTEMPTS_LIMIT: int = int(os.getenv("RESEND_ATTEMPTS_LIMIT", "3"))
     RESEND_ATTEMPTS_WINDOW_HOURS: int = int(os.getenv("RESEND_ATTEMPTS_WINDOW_HOURS", "24"))
     LOCKOUT_HOURS: int = int(os.getenv("LOCKOUT_HOURS", "24"))
@@ -53,8 +55,10 @@ class Config:
 
     # JWT
     JWT_SECRET: str = os.getenv("JWT_SECRET", "change-me-in-production")
+    TEMP_AUTH_JWT_SECRET: str = os.getenv("TEMP_AUTH_JWT_SECRET", "change-temp-auth-secret-in-production")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+    TEMP_AUTH_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("TEMP_AUTH_TOKEN_EXPIRE_MINUTES", "10"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
     # Logging

@@ -4,7 +4,7 @@ import re
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.schemas.common import ConsentsInput, Gender
 
@@ -12,15 +12,58 @@ from src.schemas.common import ConsentsInput, Gender
 class DoctorRegisterRequest(BaseModel):
     """Doctor registration request — creates a PROVIDER account."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "first_name": "Riya",
+                    "last_name": "Kuruvilla",
+                    "email": "doctor@example.com",
+                    "password": "Secure@123",
+                    "consents": {
+                        "terms_privacy": True,
+                        "telehealth": True,
+                        "marketing": False,
+                    },
+                },
+                {
+                    "first_name": "Riya",
+                    "middle_name": "M",
+                    "last_name": "Kuruvilla",
+                    "email": "doctor@example.com",
+                    "password": "Secure@123",
+                    "phone": "9876543210",
+                    "country_code": "+91",
+                    "date_of_birth": "1990-05-10",
+                    "gender": "FEMALE",
+                    "specialty": "CARDIOLOGY",
+                    "experience_years": 8,
+                    "license_number": "LIC-12345",
+                    "is_independent": True,
+                    "address_line1": "123 Main Street",
+                    "address_city": "Bangalore",
+                    "address_state": "Karnataka",
+                    "address_country": "India",
+                    "address_zip": "560001",
+                    "consents": {
+                        "terms_privacy": True,
+                        "telehealth": True,
+                        "marketing": True,
+                    },
+                },
+            ]
+        }
+    )
+
     first_name: str = Field(..., min_length=1, max_length=100)
     middle_name: str | None = Field(None, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr = Field(..., description="Email address")
     password: str = Field(..., min_length=8, max_length=128)
-    phone: str = Field(..., min_length=1, max_length=20, description="Digits only")
-    country_code: str = Field(..., min_length=1, max_length=5, description="e.g. +1")
-    date_of_birth: date = Field(...)
-    gender: str = Field(..., description="MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
+    phone: str | None = Field(None, max_length=20, description="Digits only (optional)")
+    country_code: str | None = Field(None, max_length=5, description="e.g. +1 (optional)")
+    date_of_birth: date | None = Field(None)
+    gender: str | None = Field(None, description="MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY (optional)")
     specialty: str | None = Field(None, description="e.g. CARDIOLOGY — must match DoctorSpecialty constants")
     experience_years: int | None = Field(None, ge=0, le=80, description="Years of experience (optional)")
     license_number: str | None = Field(None, max_length=100, description="Medical license number (optional)")
@@ -31,7 +74,7 @@ class DoctorRegisterRequest(BaseModel):
     address_state: str | None = Field(None, max_length=100, description="State / Province (optional)")
     address_country: str | None = Field(None, max_length=100, description="Country (optional)")
     address_zip: str | None = Field(None, max_length=20, description="Zip / Postal code (optional)")
-    consents: ConsentsInput = Field(..., description="Terms + Telehealth mandatory")
+    consents: ConsentsInput = Field(..., description="Required from frontend. terms_privacy and telehealth must be true")
 
     @field_validator("first_name", "last_name")
     @classmethod
@@ -47,7 +90,11 @@ class DoctorRegisterRequest(BaseModel):
 
     @field_validator("gender")
     @classmethod
-    def gender_valid(cls, v: str) -> str:
+    def gender_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not v.strip():
+            return None
         allowed = {g.value for g in Gender}
         if v.strip().upper() not in allowed:
             raise ValueError("Gender must be one of: MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY")
@@ -55,16 +102,24 @@ class DoctorRegisterRequest(BaseModel):
 
     @field_validator("phone")
     @classmethod
-    def phone_numeric(cls, v: str) -> str:
+    def phone_numeric(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         stripped = v.strip()
+        if not stripped:
+            return None
         if not stripped.isdigit():
             raise ValueError("Phone number must contain digits only")
         return stripped
 
     @field_validator("country_code")
     @classmethod
-    def country_code_valid(cls, v: str) -> str:
+    def country_code_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
         stripped = v.strip()
+        if not stripped:
+            return None
         digits = stripped.lstrip("+")
         if not digits.isdigit():
             raise ValueError("Country code must be + followed by digits (e.g. +1, +49)")

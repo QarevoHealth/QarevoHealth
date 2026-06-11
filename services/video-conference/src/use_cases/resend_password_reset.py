@@ -5,7 +5,6 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.config import config
@@ -13,11 +12,14 @@ from src.models import (
     PasswordResetTokenDB,
     TokenType,
     UserDB,
-    UserTokenAttemptDB,
-    UserTokenLockoutDB,
 )
 from src.services.email_service import send_email
 from src.services.notification_loader import load_email_template
+from src.use_cases.token_lockout import (
+    count_attempts_with_created_tokens,
+    create_or_extend_lockout,
+    get_active_lockout,
+)
 
 
 def _hash_token(token: str) -> str:
@@ -25,74 +27,22 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _check_lockout(db: Session, user_id, token_type: str) -> UserTokenLockoutDB | None:
-    """Return active lockout if user is locked, else None."""
-    now = datetime.now(timezone.utc)
-    return (
-        db.query(UserTokenLockoutDB)
-        .filter(
-            UserTokenLockoutDB.user_id == user_id,
-            UserTokenLockoutDB.token_type == token_type,
-            UserTokenLockoutDB.locked_until > now,
-        )
-        .first()
-    )
+def _check_lockout(db: Session, user_id, token_type: str):
+    return get_active_lockout(db, user_id, token_type)
 
 
 def _count_attempts(db: Session, user_id, token_type: str) -> int:
-    """Count resends + failed resets in last 24h."""
-    now = datetime.now(timezone.utc)
-    window_start = now - timedelta(hours=config.RESEND_ATTEMPTS_WINDOW_HOURS)
-
-    # Resends: count tokens created in window
-    resend_count = (
-        db.query(func.count(PasswordResetTokenDB.id))
-        .filter(
-            PasswordResetTokenDB.user_id == user_id,
-            PasswordResetTokenDB.created_at >= window_start,
-        )
-        .scalar()
-        or 0
+    return count_attempts_with_created_tokens(
+        db=db,
+        user_id=user_id,
+        token_type=token_type,
+        window_hours=config.RESEND_ATTEMPTS_WINDOW_HOURS,
+        token_model=PasswordResetTokenDB,
     )
-
-    # Failed resets: count from user_token_attempts
-    fail_count = (
-        db.query(func.count(UserTokenAttemptDB.id))
-        .filter(
-            UserTokenAttemptDB.user_id == user_id,
-            UserTokenAttemptDB.token_type == token_type,
-            UserTokenAttemptDB.attempted_at >= window_start,
-        )
-        .scalar()
-        or 0
-    )
-
-    return resend_count + fail_count
 
 
 def _create_lockout(db: Session, user_id, token_type: str) -> None:
-    """Create or update lockout (1 day)."""
-    now = datetime.now(timezone.utc)
-    locked_until = now + timedelta(hours=config.LOCKOUT_HOURS)
-
-    existing = (
-        db.query(UserTokenLockoutDB)
-        .filter(
-            UserTokenLockoutDB.user_id == user_id,
-            UserTokenLockoutDB.token_type == token_type,
-        )
-        .first()
-    )
-    if existing:
-        existing.locked_until = locked_until
-        existing.created_at = now
-    else:
-        lockout = UserTokenLockoutDB(
-            user_id=user_id,
-            token_type=token_type,
-            locked_until=locked_until,
-        )
-        db.add(lockout)
+    create_or_extend_lockout(db, user_id, token_type, config.LOCKOUT_HOURS)
 
 
 def execute(email: str, db: Session) -> dict:

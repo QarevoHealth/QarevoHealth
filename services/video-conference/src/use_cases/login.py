@@ -1,4 +1,4 @@
-"""Login use case - verify credentials, create tokens, store refresh token."""
+"""Patient login use case - verify credentials and issue tokens."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -16,6 +16,7 @@ from src.services.auth_service import (
     create_refresh_token,
     verify_password,
 )
+from src.use_cases.send_verification_email import execute as send_verification_email
 
 
 def execute(
@@ -25,7 +26,7 @@ def execute(
     user_agent: str | None = None,
 ) -> dict:
     """
-    Login: verify email+password, create access + refresh tokens, store refresh token in DB.
+    Patient login: verify email+password, create access + refresh tokens, store refresh token in DB.
     Returns access_token, refresh_token, expires_in.
     """
     email_lower = request.email.lower().strip()
@@ -59,6 +60,46 @@ def execute(
         )
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    if user.role != CONFIG_USER.ROLE.PATIENT:
+        write_audit_log(
+            db,
+            event_type=AuditEventType.LOGIN_FAILURE,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.ACCOUNT_NOT_ACTIVE,
+            commit=True,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Use doctor login endpoint for provider accounts.",
+        )
+
+    if user.status == CONFIG_USER.STATUS.PENDING_VERIFICATION:
+        send_verification_email(
+            user_id=user.id,
+            user_email=(user.email or "").lower().strip(),
+            user_name=user.first_name,
+            db=db,
+        )
+        write_audit_log(
+            db,
+            event_type=AuditEventType.LOGIN_FAILURE,
+            event_category=AuditEventCategory.AUTH,
+            success=False,
+            actor_user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            failure_reason=FailureReason.EMAIL_NOT_VERIFIED,
+            commit=True,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail={"error_code": "EMAIL_VERIFICATION_PENDING"},
+        )
+
     if user.status != CONFIG_USER.STATUS.ACTIVE:
         write_audit_log(
             db,
@@ -73,7 +114,7 @@ def execute(
         )
         raise HTTPException(
             status_code=403,
-            detail="Account not active. Please verify your email first.",
+            detail={"error_code": "ACCOUNT_NOT_ACTIVE"},
         )
 
     if not user.email_verified:
@@ -90,7 +131,7 @@ def execute(
         )
         raise HTTPException(
             status_code=403,
-            detail="Email not verified. Please check your inbox for the verification link.",
+            detail={"error_code": "EMAIL_VERIFICATION_PENDING"},
         )
 
     access_token = create_access_token(user.id, user.email, user.role)
@@ -125,4 +166,6 @@ def execute(
         "refresh_token": raw_refresh,
         "token_type": "bearer",
         "expires_in": expires_in_seconds,
+        "email_verified": bool(user.email_verified),
+        "phone_verified": bool(user.phone_verified),
     }
