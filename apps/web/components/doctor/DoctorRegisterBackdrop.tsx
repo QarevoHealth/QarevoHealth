@@ -7,7 +7,7 @@ export function DoctorRegisterBackdrop() {
     return (
         <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-gradient-to-b from-q-azure-50 via-q-azure-100 to-q-azure-200/80"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[var(--color-primary-50)]"
         >
             <div className="absolute inset-0 overflow-auto [transform:translateZ(0)]">
                 <div className="min-h-full blur-[14px] sm:blur-[18px] [transform:scale(1.03)]">

@@ -1,16 +1,12 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 /** Default doctor user_id for testing */
 const DEFAULT_PROVIDER_USER_ID = "4dc8a45f-3e8d-4912-a41f-d193a1a1f70c";
 
-/**
- * Redirects to the new waiting URL: /consultation/{id}/waiting/user/{userId}
- * Doctor opens that URL, sees waiting screen, clicks Join Call to join.
- */
-export default function DoctorJoinPage() {
+function DoctorJoinRedirect() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -22,4 +18,16 @@ export default function DoctorJoinPage() {
     }, [consultationId, userId, router]);
 
     return null;
+}
+
+/**
+ * Redirects to the new waiting URL: /consultation/{id}/waiting/user/{userId}
+ * Doctor opens that URL, sees waiting screen, clicks Join Call to join.
+ */
+export default function DoctorJoinPage() {
+    return (
+        <Suspense fallback={null}>
+            <DoctorJoinRedirect />
+        </Suspense>
+    );
 }
