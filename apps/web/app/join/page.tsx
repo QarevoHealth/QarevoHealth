@@ -1,12 +1,19 @@
 "use client";
-
-import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 
-function JoinPageContent() {
+function JoinLoading() {
+    return (
+        <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6">
+            <Loader2 size={32} className="animate-spin text-sky-500" />
+            <p className="text-[var(--q-muted)]">Joining meeting...</p>
+        </div>
+    );
+}
+
+function JoinFlow() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
@@ -30,7 +37,6 @@ function JoinPageContent() {
                 );
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error ?? "Failed to get join info");
-
                 sessionStorage.setItem("chime-join-direct", JSON.stringify(data));
                 router.replace(`/join/call?meetingId=${encodeURIComponent(meetingId)}`);
             } catch (err) {
@@ -65,13 +71,5 @@ export default function JoinPage() {
                 <JoinFlow />
             </Suspense>
         </AppShell>
-    );
-}
-
-export default function JoinPage() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <JoinPageContent />
-        </Suspense>
     );
 }
