@@ -491,7 +491,8 @@ export default function PatientRegisterPage() {
         const code = loginEmailVerificationCode.join("").replace(/\s/g, "");
         if (code.length !== 6) return;
         if (code === lastVerificationAttemptCode) return;
-        void verifyLoginEmailCode(code);
+        const timer = window.setTimeout(() => void verifyLoginEmailCode(code), 0);
+        return () => window.clearTimeout(timer);
     }, [
         showLoginEmailVerificationStep,
         isVerifyingEmailCode,
@@ -511,7 +512,8 @@ export default function PatientRegisterPage() {
     useEffect(() => {
         if (!showLoginEmailVerificationStep) return;
         if (resendCooldownSeconds > 0) return;
-        setShowVerificationResendSuccess(false);
+        const timer = window.setTimeout(() => setShowVerificationResendSuccess(false), 0);
+        return () => window.clearTimeout(timer);
     }, [showLoginEmailVerificationStep, resendCooldownSeconds]);
 
     async function resendVerificationEmail() {

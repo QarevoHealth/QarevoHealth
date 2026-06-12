@@ -42,22 +42,28 @@ export function DoctorMfaOtpModal({
     const verifyRef = useRef(onVerify);
     const closeRef = useRef(onClose);
     const onLockedRef = useRef(onLocked);
-    verifyRef.current = onVerify;
-    closeRef.current = onClose;
-    onLockedRef.current = onLocked;
+
+    useEffect(() => {
+        verifyRef.current = onVerify;
+        closeRef.current = onClose;
+        onLockedRef.current = onLocked;
+    }, [onVerify, onClose, onLocked]);
 
     useEffect(() => {
         if (!open) return;
-        setCodeDigits(Array(6).fill(""));
-        setError("");
-        verifyAttemptedForCodeRef.current = "";
-        setVerifying(false);
-        setResendCooldown(false);
-        setResending(false);
-        if (resendCooldownTimerRef.current) {
-            clearTimeout(resendCooldownTimerRef.current);
-            resendCooldownTimerRef.current = null;
-        }
+        const id = window.setTimeout(() => {
+            setCodeDigits(Array(6).fill(""));
+            setError("");
+            verifyAttemptedForCodeRef.current = "";
+            setVerifying(false);
+            setResendCooldown(false);
+            setResending(false);
+            if (resendCooldownTimerRef.current) {
+                clearTimeout(resendCooldownTimerRef.current);
+                resendCooldownTimerRef.current = null;
+            }
+        }, 0);
+        return () => window.clearTimeout(id);
     }, [open, kind]);
 
     useEffect(() => {
