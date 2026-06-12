@@ -1,0 +1,22 @@
+# 1. Ignore the massive Node.js folder (The Frontend)
+node_modules/
+.next/
+out/
+
+# 2. Ignore local Python trash
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.env
+
+# 3. Ignore local databases (Very Important!)
+*.db
+*.sqlite3
+video_conference.db
+
+# 4. Ignore IDES and Logs
+.vscode/
+.idea/
+logs/
+*.log

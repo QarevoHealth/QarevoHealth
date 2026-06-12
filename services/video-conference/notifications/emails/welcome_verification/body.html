@@ -1,25 +1,111 @@
 <html>
-<body style="font-family: Arial, sans-serif; color: #333;">
-    <h2>Welcome to Qarevo Health!</h2>
-    <p>Hi {{user_name}},</p>
-    <p>Thank you for registering. Please verify your email address using one of the two options below:</p>
+<body style="margin:0; padding:24px 0; background-color:#f4f6f8; font-family:Arial, sans-serif; color:#1f2937;">
 
-    <hr style="margin: 24px 0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f6f8;">
+<tr>
+<td align="center">
 
-    <h3>Option 1 — Click the verification link</h3>
-    <p><a href="{{verification_link}}" style="color: #0066cc;">Verify my email</a></p>
-    <p style="color: #888; font-size: 13px;">This link expires in {{expiry_hours}} hours.</p>
+<table
+    role="presentation"
+    width="720"
+    cellspacing="0"
+    cellpadding="0"
+    border="0"
+    style="width:720px; max-width:720px; background-color:#ffffff; border-radius:8px; overflow:hidden;"
+>
 
-    <hr style="margin: 24px 0;">
+<tr>
+<td style="background-color:#0b4a6f; color:#ffffff; text-align:center; font-size:28px; font-weight:700; padding:20px;">
+    Qarevo Health
+</td>
+</tr>
 
-    <h3>Option 2 — Enter this verification code</h3>
-    <p style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #222;">{{otp_code}}</p>
-    <p style="color: #888; font-size: 13px;">This code expires in {{otp_expiry_minutes}} minutes.</p>
+<tr>
+<td style="padding:28px 40px 16px 40px;">
 
-    <hr style="margin: 24px 0;">
+<h2 style="margin:0 0 14px 0; font-size:32px; line-height:1.2; color:#0f172a;">
+    Confirm your email address
+</h2>
 
-    <p>If you did not create an account, you can ignore this email.</p>
-    <br>
-    <p>Best regards,<br>The Qarevo Health Team</p>
+<p style="margin:0 0 10px 0; font-size:16px; line-height:1.5; color:#111827;">
+    Hi {{user_name}},
+</p>
+
+<p style="margin:0 0 24px 0; font-size:16px; line-height:1.6; color:#111827;">
+    Here's your confirmation code. You can copy it into the open browser window or click the button below to confirm this email address.
+</p>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:0 40px 20px 40px;">
+
+<table
+    role="presentation"
+    width="100%"
+    cellspacing="0"
+    cellpadding="0"
+    border="0"
+    style="background-color:#eef3f7; border-radius:4px;"
+>
+<tr>
+<td style="text-align:center; font-size:34px; line-height:1; font-weight:700; color:#111827; letter-spacing:12px; padding:18px 12px;">
+    {{otp_code}}
+</td>
+</tr>
+</table>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:0 40px 20px 40px;">
+
+<a
+    href="{{verification_link}}"
+    style="display:block; text-align:center; text-decoration:none; background-color:#13a4d8; color:#ffffff; font-size:16px; font-weight:700; border-radius:6px; padding:14px;"
+>
+    CONFIRM AND SIGN IN
+</a>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:0 40px 10px 40px;">
+
+<p style="margin:0 0 10px 0; font-size:16px; line-height:1.5; color:#111827; font-weight:600;">
+    This code will only be valid for the next {{otp_expiry_minutes}} minutes.
+</p>
+
+<p style="margin:0 0 16px 0; font-size:14px; line-height:1.5; color:#6b7280;">
+    This confirmation link expires in {{expiry_hours}} hours.
+</p>
+
+<p style="margin:0; font-size:15px; line-height:1.6; color:#374151;">
+    If you didn't request this email, there's nothing to worry about — you can safely ignore it.
+</p>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:20px 40px 28px 40px;">
+
+<p style="margin:0; font-size:14px; color:#6b7280; line-height:1.5;">
+    Best regards,<br>
+    The Qarevo Health Team
+</p>
+
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
 </body>
 </html>

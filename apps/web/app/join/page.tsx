@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 
@@ -43,26 +43,27 @@ function JoinPageContent() {
 
     if (error) {
         return (
-            <AppShell>
-                <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6">
-                    <p className="text-center text-red-600">{error}</p>
-                    <button
-                        onClick={() => router.push("/")}
-                        className="rounded-full bg-sky-500 px-6 py-2 text-sm font-semibold text-white"
-                    >
-                        Go to Home
-                    </button>
-                </div>
-            </AppShell>
+            <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6">
+                <p className="text-center text-red-600">{error}</p>
+                <button
+                    onClick={() => router.push("/")}
+                    className="rounded-full bg-sky-500 px-6 py-2 text-sm font-semibold text-white"
+                >
+                    Go to Home
+                </button>
+            </div>
         );
     }
 
+    return <JoinLoading />;
+}
+
+export default function JoinPage() {
     return (
         <AppShell>
-            <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6">
-                <Loader2 size={32} className="animate-spin text-sky-500" />
-                <p className="text-[var(--q-muted)]">Joining meeting...</p>
-            </div>
+            <Suspense fallback={<JoinLoading />}>
+                <JoinFlow />
+            </Suspense>
         </AppShell>
     );
 }
