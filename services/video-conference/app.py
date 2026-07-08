@@ -26,6 +26,7 @@ from src.api.doctor import doctor_register_router
 from src.api.users import me_router
 from src.api.consultations import router as consultations_router
 from src.api.meetings import router as meetings_router
+from src.api.providers import router as providers_router
 from src.config import config
 
 # Tables: run "python scripts/init_db.py" manually to create
@@ -58,7 +59,7 @@ app.include_router(reset_password_router)
 app.include_router(resend_password_reset_router)
 app.include_router(consultations_router)
 app.include_router(meetings_router)
-
+app.include_router(providers_router)
 
 # Serve join page
 static_dir = Path(__file__).parent / "static"
@@ -97,3 +98,4 @@ if __name__ == "__main__":
         port=config.PORT,
         log_level=config.LOG_LEVEL.lower()
     )
+

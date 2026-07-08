@@ -59,6 +59,22 @@ class AttendeeJoinInfo(BaseModel):
     join_token: str = Field(..., description="Chime join token")
     join_url: str = Field(..., description="Full URL to join the meeting")
 
+class EligibleProviderDetail(BaseModel):
+    """Detailed metadata for an eligible provider discovery match."""
+
+    provider_id: UUID = Field(..., description="Provider unique database identifier")
+    user_id: UUID = Field(..., description="Associated User account UUID")
+    full_name: Optional[str] = Field(None, description="Provider's combined first and last name")
+    specialty: Optional[str] = Field(None, description="Validated medical specialty string")
+    is_active: bool = Field(..., description="Current platform activation status flag")
+
+
+class EligibleProvidersResponse(BaseModel):
+    """Response payload returning safe, deterministic list of matching providers."""
+
+    providers: List[EligibleProviderDetail] = Field(
+        ..., description="List of matching providers capped at a maximum of 5 records"
+    )
 
 class CreateMeetingResponse(BaseModel):
     """Response after scheduling a consultation.
