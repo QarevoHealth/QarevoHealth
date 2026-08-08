@@ -6,14 +6,65 @@ on:
     branches: [ "main" ]
 
 jobs:
-  verify:
-    name: verify
+  backend:
+    name: Backend Checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify repository bootstrap
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install backend dependencies
+        working-directory: services/video-conference
         run: |
-          echo "Qarevo Health: CI is running."
-          ls -la
+          python -m pip install --upgrade pip
+          pip install ruff mypy pytest pytest-cov
+
+      - name: Lint with ruff
+        working-directory: services/video-conference
+        run: ruff check .
+
+      - name: Type check with mypy
+        working-directory: services/video-conference
+        run: mypy .
+
+      - name: Run tests with pytest
+        working-directory: services/video-conference
+        run: pytest --cov=. --cov-fail-under=50
+
+  frontend:
+    name: Frontend Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: pnpm install --ignore-scripts
+
+      - name: Lint
+        working-directory: apps/web
+        run: pnpm lint
+
+      - name: Type check
+        working-directory: apps/web
+        run: pnpm tsc --noEmit
+
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build
