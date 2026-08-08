@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, X } from "phosphor-react";
-import { PASSWORD_RULES } from "@/lib/password-policy";
+import { PASSWORD_RULES, type PasswordRule } from "@/lib/password-policy";
 
 type PasswordValidationHintsProps = {
     value: string;
@@ -16,7 +16,7 @@ export function PasswordValidationHints({ value, className = "" }: PasswordValid
             className={`flex flex-wrap gap-2 ${className}`.trim()}
             aria-label="Password requirements"
         >
-            {PASSWORD_RULES.map((rule) => {
+            {PASSWORD_RULES.map((rule: PasswordRule) => {
                 const satisfied = rule.test(value);
                 return (
                     <li

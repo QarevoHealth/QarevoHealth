@@ -1,7 +1,7 @@
 import { apiGet } from "@/lib/api";
 import { AppShell } from "@/components/AppShell";
 import { CallPageContent } from "@/components/CallPageContent";
-import { mockConsultation, mockProvidersOne, mockProvidersTwo } from "@/lib/mock-data";
+import { mockConsultation, mockProvidersOne } from "@/lib/mock-data";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +14,8 @@ type Consultation = {
 
 export default async function CallPage({
     params,
-    searchParams,
 }: {
     params: Promise<{ id: string }>;
-    searchParams: Promise<{ mode?: string }>;
 }) {
     const { id } = await params;
     const useMock = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";

@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -25,8 +24,10 @@ function JoinFlow() {
         const attendeeId = searchParams.get("attendeeId");
 
         if (!meetingId || !joinToken || !attendeeId) {
-            setError("Invalid join link: missing meetingId, joinToken, or attendeeId");
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setError("Invalid join link: missing meetingId, joinToken, or attendeeId");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
 
         const run = async () => {
@@ -36,7 +37,6 @@ function JoinFlow() {
                 );
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error ?? "Failed to get join info");
-
                 sessionStorage.setItem("chime-join-direct", JSON.stringify(data));
                 router.replace(`/join/call?meetingId=${encodeURIComponent(meetingId)}`);
             } catch (err) {

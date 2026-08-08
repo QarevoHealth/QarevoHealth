@@ -17,9 +17,6 @@ importers:
       next:
         specifier: 16.1.6
         version: 16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      phosphor-react:
-        specifier: ^1.4.1
-        version: 1.4.1(react@19.2.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -45,6 +42,9 @@ importers:
       eslint-config-next:
         specifier: 16.1.6
         version: 16.1.6(@typescript-eslint/parser@8.56.1(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.3(jiti@2.6.1))(typescript@5.9.3)
+      phosphor-react:
+        specifier: ^1.4.1
+        version: 1.4.1(react@19.2.3)
       tailwindcss:
         specifier: ^4
         version: 4.2.1

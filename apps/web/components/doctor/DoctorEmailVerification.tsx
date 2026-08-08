@@ -79,7 +79,8 @@ export function DoctorEmailVerification({
 
     useEffect(() => {
         if (resendCooldownSeconds > 0) return;
-        setShowResendSuccess(false);
+        const id = window.setTimeout(() => setShowResendSuccess(false), 0);
+        return () => window.clearTimeout(id);
     }, [resendCooldownSeconds]);
 
     function updateDigitAtIndex(index: number, rawValue: string) {
@@ -210,7 +211,8 @@ export function DoctorEmailVerification({
         const code = codeDigits.join("").replace(/\s/g, "");
         if (code.length !== 6) return;
         if (code === lastAttemptCode) return;
-        void verifyCode(code);
+        const id = window.setTimeout(() => void verifyCode(code), 0);
+        return () => window.clearTimeout(id);
         // eslint-disable-next-line react-hooks/exhaustive-deps -- submit when 6 digits change; verifyCode is stable enough for this flow
     }, [codeDigits, isVerifying, lastAttemptCode]);
 

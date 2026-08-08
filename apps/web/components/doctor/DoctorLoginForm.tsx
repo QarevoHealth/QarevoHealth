@@ -157,6 +157,25 @@ export function DoctorLoginForm({ variant = "page", onRequestClose }: DoctorLogi
         return () => clearInterval(t);
     }, [showResetPasswordLockedStep, resetRetryAfterSeconds]);
 
+    async function finalizeDoctorLoginAfterMfa() {
+        const id = identifier.trim();
+        const res = await fetch("/api/v1/auth/doctor/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ identifier: id, password }),
+        });
+        const data = (await res.json().catch(() => ({}))) as JsonPayload;
+        if (res.ok) {
+            const accessRaw = data.access_token ?? data.accessToken;
+            if (typeof accessRaw === "string" && accessRaw) {
+                completeAuthSession(data);
+                return;
+            }
+        }
+        mfaFinalizeOnce.current = false;
+        setError(messageFromPayload(data) || "Could not complete sign-in after verification.");
+    }
+
     useEffect(() => {
         if (mfaStep !== "mfa_hub") {
             mfaFinalizeOnce.current = false;
@@ -266,25 +285,6 @@ export function DoctorLoginForm({ variant = "page", onRequestClose }: DoctorLogi
         const lock = parseMfaLockPayload(data);
         if (lock) return { ok: false, lock };
         return { ok: false, error: messageFromPayload(data) };
-    }
-
-    async function finalizeDoctorLoginAfterMfa() {
-        const id = identifier.trim();
-        const res = await fetch("/api/v1/auth/doctor/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ identifier: id, password }),
-        });
-        const data = (await res.json().catch(() => ({}))) as JsonPayload;
-        if (res.ok) {
-            const accessRaw = data.access_token ?? data.accessToken;
-            if (typeof accessRaw === "string" && accessRaw) {
-                completeAuthSession(data);
-                return;
-            }
-        }
-        mfaFinalizeOnce.current = false;
-        setError(messageFromPayload(data) || "Could not complete sign-in after verification.");
     }
 
     async function resendMfaEmail(): Promise<MfaOtpResult> {
@@ -893,7 +893,7 @@ export function DoctorLoginForm({ variant = "page", onRequestClose }: DoctorLogi
                 {mfaStep === "credentials" && !showResetPasswordStep && !isModal ? (
                     <>
                         <p className="mt-6 text-center text-sm text-q-muted-text">
-                           Don't have an account?{" "}
+                           Don&apos;t have an account?{" "}
                             <Link href="/doctor/register" className="font-semibold text-q-link hover:underline">
                                 Register now !
                             </Link>

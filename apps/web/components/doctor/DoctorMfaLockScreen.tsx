@@ -28,7 +28,8 @@ export function DoctorMfaLockScreen({ lock, onBack }: DoctorMfaLockScreenProps) 
     const [remaining, setRemaining] = useState(() => initialLockCountdownSeconds(lock));
 
     useEffect(() => {
-        setRemaining(initialLockCountdownSeconds(lock));
+        const id = window.setTimeout(() => setRemaining(initialLockCountdownSeconds(lock)), 0);
+        return () => window.clearTimeout(id);
     }, [lock]);
 
     useEffect(() => {
@@ -44,7 +45,7 @@ export function DoctorMfaLockScreen({ lock, onBack }: DoctorMfaLockScreenProps) 
             return () => window.clearInterval(id);
         }
         const id = window.setInterval(() => {
-            setRemaining((prev) => Math.max(0, prev - 1));
+            setRemaining((prev: number) => Math.max(0, prev - 1));
         }, 1000);
         return () => window.clearInterval(id);
     }, [lock.lockedUntilIso, lock.retryAfterSeconds]);

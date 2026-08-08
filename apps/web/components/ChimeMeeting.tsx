@@ -41,19 +41,24 @@ export function ChimeMeeting({
     const localStreamRef = useRef<MediaStream | null>(null);
     const videoTrackRef = useRef<MediaStreamTrack | null>(null);
     const onEndCallRef = useRef(onEndCall);
-    onEndCallRef.current = onEndCall;
+
+    useEffect(() => {
+        onEndCallRef.current = onEndCall;
+    }, [onEndCall]);
 
     useEffect(() => {
         const el = patientVideoRef.current;
         if (!el || !localStream) return;
         el.srcObject = localStream;
-        el.play().catch(() => {});
+        el.play().catch(() => { });
     }, [localStream]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-            setError("Camera and microphone access is required. Please use a supported browser.");
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setError("Camera and microphone access is required. Please use a supported browser.");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
         let cancelled = false;
         const logger = new ConsoleLogger("ChimeSDK", LogLevel.WARN);
@@ -64,8 +69,10 @@ export function ChimeMeeting({
             const eventController = new DefaultEventController(config, logger);
             session = new DefaultMeetingSession(config, logger, deviceController, eventController);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to initialize meeting");
-            return;
+            const timeoutId = window.setTimeout(() => {
+                setError(err instanceof Error ? err.message : "Failed to initialize meeting");
+            }, 0);
+            return () => window.clearTimeout(timeoutId);
         }
         sessionRef.current = session;
 
@@ -88,7 +95,7 @@ export function ChimeMeeting({
                     requestAnimationFrame(() => {
                         if (sessionRef.current && el) {
                             sessionRef.current.audioVideo.bindVideoElement(tileState.tileId!, el);
-                            el.play().catch(() => {});
+                            el.play().catch(() => { });
                         }
                     });
                 }
@@ -165,16 +172,20 @@ export function ChimeMeeting({
             } catch {
                 // ignore
             }
-            session.destroy().catch(() => {});
+            session.destroy().catch(() => { });
         };
     }, [joinData, onEndCall]);
 
     const handleMuteToggle = useCallback(() => {
         const session = sessionRef.current;
         if (session) {
-            const enabled = session.audioVideo.realtimeIsLocalAudioMuted();
-            session.audioVideo.realtimeMuteLocalAudio();
-            setMuted(!enabled);
+            const isMuted = session.audioVideo.realtimeIsLocalAudioMuted();
+            if (isMuted) {
+                session.audioVideo.realtimeUnmuteLocalAudio();
+            } else {
+                session.audioVideo.realtimeMuteLocalAudio();
+            }
+            setMuted(!isMuted);
         }
     }, []);
 

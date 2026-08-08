@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { CaretDown, X } from "phosphor-react";
-import { DOCTOR_EXPERTISE_OPTIONS } from "@/lib/doctor/expertise-options";
+import { DOCTOR_EXPERTISE_OPTIONS, type DoctorExpertiseOption } from "@/lib/doctor/expertise-options";
 
 type Props = {
     selected: string[];
@@ -32,7 +32,7 @@ export function DoctorExpertiseMultiSelect({ selected, onChange, id }: Props) {
         onChange(selected.filter((v) => v !== value));
     }
 
-    const available = DOCTOR_EXPERTISE_OPTIONS.filter((o) => !selected.includes(o.value));
+    const available = DOCTOR_EXPERTISE_OPTIONS.filter((o: DoctorExpertiseOption) => !selected.includes(o.value));
 
     return (
         <div ref={ref} className="relative">
